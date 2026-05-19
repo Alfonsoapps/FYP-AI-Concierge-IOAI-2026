@@ -1,0 +1,34 @@
+# Environment variables (contains API keys)
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Node modules (future frontend dependencies)
+node_modules/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Distribution / Build
+dist/
+build/
+*.egg-info/
+
+# ChromaDB (future)
+chroma_data/
+
+# OS files
+.DS_Store
+Thumbs.db

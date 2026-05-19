@@ -1,0 +1,454 @@
+/* ============================================================
+   AI Concierge - Avatar-Centered UI Styles
+   
+   Layout philosophy:
+   - The Live2D avatar is the MAIN focus (takes up most of the screen)
+   - The chat interface is compact and secondary (floating near bottom)
+   - The overall feel is interactive, alive, and youth-friendly
+   ============================================================ */
+
+/* --- CSS Variables (Theme) --- */
+:root {
+    --bg-primary: #0f0f1a;          /* Deep dark background */
+    --bg-secondary: #1a1a2e;        /* Card/panel background */
+    --bg-glass: rgba(26, 26, 46, 0.85); /* Glassmorphism panels */
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b8;
+    --accent: #7c3aed;              /* Purple accent */
+    --accent-glow: rgba(124, 58, 237, 0.3);
+    --user-msg: #7c3aed;
+    --bot-msg: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --radius: 16px;
+    --radius-sm: 10px;
+}
+
+/* --- Reset & Base --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevent scrolling - everything fits in viewport */
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Background Gradient Effect --- */
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+        ellipse at 50% 50%,
+        rgba(124, 58, 237, 0.08) 0%,
+        transparent 50%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ============================================================
+   AVATAR AREA - The main visual focus
+   Takes up the majority of the viewport
+   ============================================================ */
+#avatar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* The PixiJS canvas will be placed here */
+#avatar-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* --- Avatar Status Indicator --- */
+/* Shows when the avatar is "thinking" or "speaking" (future use) */
+#avatar-status {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#avatar-status.visible {
+    opacity: 1;
+}
+
+#avatar-status .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ============================================================
+   HEADER - Minimal top bar
+   ============================================================ */
+#app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none; /* Allow clicks to pass through to avatar */
+}
+
+#app-header > * {
+    pointer-events: auto; /* But header children are clickable */
+}
+
+.app-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.app-title .logo-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ============================================================
+   CHAT INTERFACE - Compact, floating, secondary
+   Positioned at the bottom of the screen
+   ============================================================ */
+#chat-panel {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    width: 90%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* --- Response Bubble --- */
+/* Shows the AI's latest response in a floating bubble */
+#response-bubble {
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    display: none; /* Hidden until first response */
+}
+
+#response-bubble.visible {
+    opacity: 1;
+    transform: translateY(0);
+    display: block;
+}
+
+#response-bubble .response-label {
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+/* --- Chat Input Area --- */
+#chat-input-area {
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s ease;
+}
+
+#chat-input-area:focus-within {
+    border-color: var(--accent);
+}
+
+#chat-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+#chat-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+#send-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.1s ease;
+    flex-shrink: 0;
+}
+
+#send-btn:hover {
+    background: #6d28d9;
+}
+
+#send-btn:active {
+    transform: scale(0.95);
+}
+
+#send-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: white;
+}
+
+#send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   CHAT HISTORY - Expandable message history (optional toggle)
+   ============================================================ */
+#chat-history {
+    position: fixed;
+    right: 24px;
+    bottom: 100px;
+    z-index: 90;
+    width: 320px;
+    max-height: 400px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+    display: none; /* Hidden by default, toggled by button */
+    flex-direction: column;
+    gap: 10px;
+}
+
+#chat-history.visible {
+    display: flex;
+}
+
+.history-message {
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    max-width: 90%;
+}
+
+.history-message.user {
+    background: var(--user-msg);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.history-message.bot {
+    background: var(--bot-msg);
+    color: var(--text-primary);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+/* --- History Toggle Button --- */
+#history-toggle {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 95;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+#history-toggle:hover {
+    background: rgba(124, 58, 237, 0.2);
+}
+
+#history-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--text-secondary);
+}
+
+/* ============================================================
+   LOADING / TYPING INDICATOR
+   ============================================================ */
+.typing-indicator {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.typing-indicator span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    animation: typing-bounce 1.2s infinite;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN
+   ============================================================ */
+@media (max-width: 600px) {
+    #chat-panel {
+        width: 95%;
+        bottom: 12px;
+    }
+
+    #response-bubble {
+        max-height: 150px;
+        font-size: 0.85rem;
+    }
+
+    #chat-history {
+        right: 12px;
+        width: 280px;
+        bottom: 80px;
+    }
+
+    #history-toggle {
+        right: 12px;
+        bottom: 12px;
+    }
+
+    #app-header {
+        padding: 12px 16px;
+    }
+}
+
+/* ============================================================
+   SCROLLBAR STYLING
+   ============================================================ */
+#response-bubble::-webkit-scrollbar,
+#chat-history::-webkit-scrollbar {
+    width: 4px;
+}
+
+#response-bubble::-webkit-scrollbar-track,
+#chat-history::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#response-bubble::-webkit-scrollbar-thumb,
+#chat-history::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+/* ============================================================
+   FUTURE: Speech/Voice Indicator (placeholder styles)
+   These will be activated when speech output is implemented
+   ============================================================ */
+#voice-indicator {
+    display: none; /* Hidden until speech is implemented */
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+}

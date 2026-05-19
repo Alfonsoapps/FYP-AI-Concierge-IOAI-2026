@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Concierge - IOAI 2027 Singapore</title>
+
+    <!-- 
+        Dependencies loaded via CDN (ORDER MATTERS!):
+        1. PixiJS v6.5.10 - 2D WebGL rendering engine (sets window.PIXI)
+        2. live2d.min.js - Cubism 2.1 runtime (required for Cubism2 models like Shizuku)
+        3. pixi-live2d-display cubism2 bundle - Live2D plugin for PixiJS
+           (registers PIXI.live2d namespace with Live2DModel, MotionPriority, etc.)
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ============================================================
+         HEADER - Small branding bar at the top
+         ============================================================ -->
+    <header id="app-header">
+        <div class="app-title">
+            <span class="logo-dot"></span>
+            IOAI 2027 AI Concierge
+        </div>
+    </header>
+
+    <!-- ============================================================
+         AVATAR CONTAINER
+         This is the main visual area. The Live2D model renders here.
+         It takes up the full viewport as the primary experience.
+         ============================================================ -->
+    <div id="avatar-container">
+        <canvas id="avatar-canvas"></canvas>
+    </div>
+
+    <!-- Status indicator (shows "Thinking..." during AI calls) -->
+    <div id="avatar-status">
+        <span class="status-dot"></span>
+        <span>Ready</span>
+    </div>
+
+    <!-- ============================================================
+         CHAT PANEL - Compact floating input at the bottom
+         Intentionally small so the avatar stays the focus.
+         ============================================================ -->
+    <div id="chat-panel">
+        <!-- AI response bubble (hidden until first response) -->
+        <div id="response-bubble">
+            <div class="response-label">AI Concierge</div>
+            <div id="response-text"></div>
+        </div>
+
+        <!-- Message input -->
+        <div id="chat-input-area">
+            <input
+                type="text"
+                id="chat-input"
+                placeholder="Ask me anything about IOAI 2027..."
+                autocomplete="off"
+            >
+            <button id="send-btn" aria-label="Send message">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         CHAT HISTORY - Expandable panel (toggled by button)
+         ============================================================ -->
+    <div id="chat-history"></div>
+    <button id="history-toggle" aria-label="Toggle chat history">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+        </svg>
+    </button>
+
+    <!-- Future: voice/speech indicator placeholder -->
+    <div id="voice-indicator"></div>
+
+    <!-- ============================================================
+         JAVASCRIPT
+         avatar.js - Live2D rendering and animation
+         chat.js   - Message sending and response display
+         ============================================================ -->
+    <!-- Application scripts (avatar.js depends on PIXI and PIXI.live2d) -->
+    <script src="/static/js/avatar.js"></script>
+    <script src="/static/js/chat.js"></script>
+
+    <script>
+        // Boot the application when the page is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('[App] Starting AI Concierge...');
+
+            // Initialize chat (lightweight, instant)
+            ChatManager.init();
+
+            // Initialize avatar (async, loads model from CDN)
+            await AvatarManager.init();
+
+            console.log('[App] Ready!');
+        });
+    </script>
+</body>
+</html>

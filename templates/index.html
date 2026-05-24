@@ -47,6 +47,21 @@
     </div>
 
     <!-- ============================================================
+         AVATAR SELECTOR - Compact floating panel to switch avatars
+         ============================================================ -->
+    <div id="avatar-selector">
+        <button class="avatar-option active" data-avatar="shizuku" title="Female Concierge">
+            <span class="avatar-option-emoji">👩</span>
+        </button>
+        <button class="avatar-option" data-avatar="koharu" title="Male Concierge">
+            <span class="avatar-option-emoji">👨</span>
+        </button>
+        <button class="avatar-option" data-avatar="hijiki" title="AI Assistant">
+            <span class="avatar-option-emoji">🤖</span>
+        </button>
+    </div>
+
+    <!-- ============================================================
          CHAT PANEL - Compact floating input at the bottom
          Intentionally small so the avatar stays the focus.
          ============================================================ -->
@@ -59,6 +74,12 @@
 
         <!-- Message input -->
         <div id="chat-input-area">
+            <button id="mic-btn" aria-label="Start voice input" title="Click to speak">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+            </button>
             <input
                 type="text"
                 id="chat-input"
@@ -94,6 +115,7 @@
     <!-- Application scripts (avatar.js depends on PIXI and PIXI.live2d) -->
     <script src="/static/js/avatar.js"></script>
     <script src="/static/js/chat.js"></script>
+    <script src="/static/js/voice.js"></script>
 
     <script>
         // Boot the application when the page is ready
@@ -103,8 +125,21 @@
             // Initialize chat (lightweight, instant)
             ChatManager.init();
 
+            // Initialize voice input (Web Speech API)
+            VoiceManager.init();
+
             // Initialize avatar (async, loads model from CDN)
             await AvatarManager.init();
+
+            // Wire up avatar selector buttons
+            document.querySelectorAll('.avatar-option').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const avatarId = btn.dataset.avatar;
+                    if (avatarId) {
+                        await AvatarManager.switchAvatar(avatarId);
+                    }
+                });
+            });
 
             console.log('[App] Ready!');
         });

@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.routers import chat
+from app.routers import tts
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +30,7 @@ app = FastAPI(
 
 # Register routers
 app.include_router(chat.router)
+app.include_router(tts.router)
 
 # Serve static assets (CSS, JS, Live2D models, images)
 # The "static" folder holds all frontend assets

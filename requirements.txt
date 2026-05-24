@@ -5,6 +5,7 @@ requests==2.31.0
 pydantic==2.9.2
 pydantic-settings==2.5.2
 jinja2==3.1.4
+edge-tts==7.2.8
 
 # Future integrations (uncomment when ready)
 # langchain==0.3.0

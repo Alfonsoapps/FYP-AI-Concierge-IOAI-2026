@@ -127,6 +127,18 @@ body::before {
     50% { opacity: 0.5; transform: scale(0.8); }
 }
 
+/* Speaking-specific dot animation (more active than thinking) */
+#avatar-status .status-dot.speaking {
+    background: #10b981;
+    animation: speaking-pulse 0.8s infinite;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+@keyframes speaking-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+}
+
 /* ============================================================
    HEADER - Minimal top bar
    ============================================================ */
@@ -163,6 +175,56 @@ body::before {
     border-radius: 50%;
     background: var(--accent);
     box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ============================================================
+   AVATAR SELECTOR - Floating panel to switch between avatars
+   ============================================================ */
+#avatar-selector {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 8px;
+}
+
+.avatar-option {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.avatar-option:hover {
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.3);
+}
+
+.avatar-option.active {
+    border-color: var(--accent);
+    background: rgba(124, 58, 237, 0.2);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.avatar-option-emoji {
+    font-size: 1.2rem;
+    line-height: 1;
 }
 
 /* ============================================================
@@ -284,6 +346,69 @@ body::before {
 #send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* --- Microphone Button --- */
+#mic-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.1s ease, border-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+#mic-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-secondary);
+    transition: fill 0.2s ease;
+}
+
+#mic-btn:hover {
+    background: rgba(124, 58, 237, 0.1);
+    border-color: var(--accent);
+}
+
+#mic-btn:hover svg {
+    fill: var(--accent);
+}
+
+#mic-btn:active {
+    transform: scale(0.95);
+}
+
+/* Listening state - mic button glows red */
+#mic-btn.listening {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    animation: mic-pulse 1.5s infinite;
+}
+
+#mic-btn.listening svg {
+    fill: #ef4444;
+}
+
+@keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+/* Listening-specific status dot */
+#avatar-status .status-dot.listening {
+    background: #ef4444;
+    animation: listening-pulse 1s infinite;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes listening-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
 }
 
 /* ============================================================

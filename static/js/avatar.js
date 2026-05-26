@@ -1,13 +1,13 @@
 /* ============================================================
-   Avatar Module - Live2D Integration + Multi-Avatar Support
+   Avatar Module - Live2D Integration + Conversational Realism
    
    Features:
    - Multiple avatar selection (3 avatars)
    - Dynamic avatar switching without page refresh
-   - Idle animations (blinking, breathing)
-   - Speaking animation (mouth movement synced to TTS)
+   - Smooth speaking animation with natural mouth movement
+   - Subtle breathing and head sway for lifelike presence
+   - Smooth transitions between idle/speaking/listening states
    - Tap interaction
-   - Thinking/speaking state indicators
    
    Required CDN scripts (loaded in index.html BEFORE this file):
    1. pixi.js v6.5.10         → sets window.PIXI
@@ -16,23 +16,25 @@
    ============================================================ */
 
 const AvatarManager = {
-    app: null,      // PixiJS Application
-    model: null,    // Current Live2D model instance
+    app: null,
+    model: null,
     isLoaded: false,
     isThinking: false,
     isSpeaking: false,
+    isListening: false,
 
-    // Speaking animation state
-    _speakingTicker: null,
-    _speakingTime: 0,
+    // Animation state
+    _animTicker: null,       // Single ticker for ALL animations
+    _time: 0,               // Global elapsed time (seconds)
+    _mouthTarget: 0,        // Target mouth value (smoothed toward)
+    _mouthCurrent: 0,       // Current mouth value (smoothly interpolated)
+    _speakingIntensity: 0,  // 0→1 fade-in when speaking starts
 
     // Current avatar ID
     currentAvatarId: 'shizuku',
 
     // ============================================================
     // AVATAR REGISTRY
-    // Add new avatars here. Each entry defines the model URL,
-    // display name, scale, and motion/parameter mappings.
     // ============================================================
     avatars: {
         shizuku: {
@@ -44,6 +46,10 @@ const AvatarManager = {
             idleMotion: 'idle',
             tapMotion: 'tap_body',
             mouthParam: 'PARAM_MOUTH_OPEN_Y',
+            angleXParam: 'PARAM_ANGLE_X',
+            angleYParam: 'PARAM_ANGLE_Y',
+            bodyAngleXParam: 'PARAM_BODY_ANGLE_X',
+            breathParam: 'PARAM_BREATH',
         },
         koharu: {
             id: 'koharu',
@@ -52,8 +58,12 @@ const AvatarManager = {
             modelUrl: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-koharu/assets/koharu.model.json',
             scale: 0.55,
             idleMotion: 'idle',
-            tapMotion: '',  // Koharu uses unnamed motion group
+            tapMotion: '',
             mouthParam: 'PARAM_MOUTH_OPEN_Y',
+            angleXParam: 'PARAM_ANGLE_X',
+            angleYParam: 'PARAM_ANGLE_Y',
+            bodyAngleXParam: 'PARAM_BODY_ANGLE_X',
+            breathParam: 'PARAM_BREATH',
         },
         hijiki: {
             id: 'hijiki',
@@ -62,35 +72,61 @@ const AvatarManager = {
             modelUrl: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-hijiki/assets/hijiki.model.json',
             scale: 0.55,
             idleMotion: 'idle',
-            tapMotion: '',  // Hijiki uses unnamed motion group
+            tapMotion: '',
             mouthParam: 'PARAM_MOUTH_OPEN_Y',
+            angleXParam: 'PARAM_ANGLE_X',
+            angleYParam: 'PARAM_ANGLE_Y',
+            bodyAngleXParam: 'PARAM_BODY_ANGLE_X',
+            breathParam: 'PARAM_BREATH',
         },
     },
 
-    // --- General config ---
+    // --- Animation config ---
     config: {
         canvasId: 'avatar-canvas',
-        speaking: {
-            speed: 8,
-            maxOpen: 0.7,
-            minOpen: 0.1,
-            randomness: 0.3,
+
+        // Mouth animation (speaking)
+        mouth: {
+            speed: 7,           // Base oscillation speed
+            maxOpen: 0.65,      // Maximum mouth opening
+            minOpen: 0.08,      // Minimum while speaking
+            smoothing: 0.15,    // How fast mouth follows target (0-1, lower = smoother)
+            fadeSpeed: 3.0,     // How fast speaking fades in/out (seconds⁻¹)
+        },
+
+        // Breathing (subtle body movement)
+        breathing: {
+            speed: 0.4,         // Breaths per second (slow, natural)
+            intensity: 0.5,     // How pronounced (0-1)
+        },
+
+        // Head sway (subtle idle movement)
+        headSway: {
+            speedX: 0.15,       // Horizontal sway speed
+            speedY: 0.12,       // Vertical nod speed
+            intensityX: 3.0,    // Degrees of horizontal sway
+            intensityY: 2.0,    // Degrees of vertical nod
+            speakingMultiplier: 1.4, // Slightly more movement when speaking
+        },
+
+        // Body sway
+        bodySway: {
+            speed: 0.08,
+            intensity: 1.5,
         },
     },
 
     // ============================================================
-    // init() - Entry point
+    // init()
     // ============================================================
     async init() {
         console.log('[Avatar] === Initialization Start ===');
 
-        // --- Dependency checks ---
         if (typeof PIXI === 'undefined') {
             this.showFallback('PixiJS library failed to load from CDN.');
             return;
         }
         console.log('[Avatar] ✓ PIXI loaded, version:', PIXI.VERSION);
-
         if (typeof window.PIXI === 'undefined') window.PIXI = PIXI;
 
         if (typeof Live2D === 'undefined' && typeof window.Live2D === 'undefined') {
@@ -105,7 +141,6 @@ const AvatarManager = {
         }
         console.log('[Avatar] ✓ PIXI.live2d.Live2DModel available');
 
-        // --- Create PixiJS Application ---
         try {
             const canvas = document.getElementById(this.config.canvasId);
             if (!canvas) throw new Error('Canvas #' + this.config.canvasId + ' not found.');
@@ -119,10 +154,10 @@ const AvatarManager = {
             });
             console.log('[Avatar] ✓ PixiJS Application created');
 
-            // Load the default avatar
             await this.loadAvatar(this.currentAvatarId);
-
+            this._startAnimationLoop();
             window.addEventListener('resize', () => this.positionModel());
+
             console.log('[Avatar] === Initialization Complete ===');
         } catch (error) {
             console.error('[Avatar] Init error:', error);
@@ -131,197 +166,175 @@ const AvatarManager = {
     },
 
     // ============================================================
-    // switchAvatar(avatarId) - Switch to a different avatar
-    // Called by the avatar selector UI.
+    // ANIMATION LOOP
+    // Single ticker handles ALL animations (breathing, sway, mouth)
+    // This is more efficient than multiple tickers.
     // ============================================================
-    async switchAvatar(avatarId) {
-        if (!this.avatars[avatarId]) {
-            console.error('[Avatar] Unknown avatar ID:', avatarId);
-            return;
+    _startAnimationLoop() {
+        if (this._animTicker) return;
+
+        this._animTicker = (delta) => {
+            // delta is in frames (~1 at 60fps), convert to seconds
+            const dt = delta / 60;
+            this._time += dt;
+            this._updateAnimations(dt);
+        };
+
+        this.app.ticker.add(this._animTicker);
+        console.log('[Avatar] ✓ Animation loop started');
+    },
+
+    _updateAnimations(dt) {
+        if (!this.model) return;
+
+        const cfg = this.config;
+        const t = this._time;
+
+        // --- Speaking intensity fade (smooth transition) ---
+        const targetIntensity = this.isSpeaking ? 1.0 : 0.0;
+        this._speakingIntensity += (targetIntensity - this._speakingIntensity) * Math.min(1, cfg.mouth.fadeSpeed * dt);
+
+        // --- Mouth animation ---
+        if (this._speakingIntensity > 0.01) {
+            this._updateMouth(t, dt);
+        } else if (this._mouthCurrent > 0.001) {
+            // Smoothly close mouth when not speaking
+            this._mouthCurrent *= 0.85;
+            if (this._mouthCurrent < 0.001) this._mouthCurrent = 0;
+            this._setParam('mouth', this._mouthCurrent);
         }
 
-        if (avatarId === this.currentAvatarId && this.isLoaded) {
-            console.log('[Avatar] Already using this avatar');
-            return;
-        }
+        // --- Breathing ---
+        this._updateBreathing(t);
 
-        console.log('[Avatar] Switching to:', avatarId);
+        // --- Head sway ---
+        this._updateHeadSway(t);
 
-        // Stop speaking animation if active
-        this.stopSpeaking();
-
-        // Unload current model
-        this.unloadModel();
-
-        // Load new avatar
-        this.currentAvatarId = avatarId;
-        await this.loadAvatar(avatarId);
-
-        // Update selector UI
-        this._updateSelectorUI(avatarId);
-
-        console.log('[Avatar] ✓ Switched to:', this.avatars[avatarId].name);
+        // --- Body sway ---
+        this._updateBodySway(t);
     },
 
     // ============================================================
-    // loadAvatar(avatarId) - Load a specific avatar model
+    // MOUTH ANIMATION (improved smoothness)
+    // Uses layered oscillators with smooth interpolation
     // ============================================================
-    async loadAvatar(avatarId) {
-        const avatarDef = this.avatars[avatarId];
-        if (!avatarDef) throw new Error('Avatar not found: ' + avatarId);
+    _updateMouth(t, dt) {
+        const cfg = this.config.mouth;
+        const intensity = this._speakingIntensity;
 
-        console.log('[Avatar] Loading:', avatarDef.name, '(' + avatarId + ')');
+        // Generate target mouth position using layered waves
+        const speed = cfg.speed;
+        const wave1 = Math.sin(t * speed * 2.0 * Math.PI) * 0.4;
+        const wave2 = Math.sin(t * speed * 1.37 * 2.0 * Math.PI) * 0.25;
+        const wave3 = Math.sin(t * speed * 2.71 * 2.0 * Math.PI) * 0.15;
+        const wave4 = Math.sin(t * speed * 0.53 * 2.0 * Math.PI) * 0.2; // Slow envelope
 
-        try {
-            this.model = await PIXI.live2d.Live2DModel.from(avatarDef.modelUrl);
-            if (!this.model) throw new Error('Model load returned null');
+        // Combine and normalize to 0-1
+        let raw = (wave1 + wave2 + wave3 + wave4 + 1.0) / 2.0;
 
-            this.app.stage.addChild(this.model);
-            this.positionModel();
-            this.startIdleMotion();
+        // Map to configured range
+        this._mouthTarget = cfg.minOpen + raw * (cfg.maxOpen - cfg.minOpen);
 
-            // Click interaction
-            this.model.interactive = true;
-            this.model.buttonMode = true;
-            this.model.on('pointerdown', () => this.onTap());
+        // Smooth interpolation (prevents jittery movement)
+        this._mouthCurrent += (this._mouthTarget - this._mouthCurrent) * cfg.smoothing;
 
-            this.isLoaded = true;
-            console.log('[Avatar] ✓ Avatar loaded:', avatarDef.name);
-        } catch (error) {
-            console.error('[Avatar] Failed to load avatar:', error);
-            this.isLoaded = false;
-            this.showFallback('Failed to load avatar: ' + avatarDef.name);
-        }
+        // Apply speaking intensity (fades in/out smoothly)
+        const finalMouth = this._mouthCurrent * intensity;
+        this._setParam('mouth', finalMouth);
     },
 
     // ============================================================
-    // unloadModel() - Remove current model from stage
+    // BREATHING (subtle, continuous)
     // ============================================================
-    unloadModel() {
-        if (this.model) {
-            this.model.removeAllListeners();
-            this.app.stage.removeChild(this.model);
-            this.model.destroy();
-            this.model = null;
-            this.isLoaded = false;
-            console.log('[Avatar] Previous model unloaded');
-        }
+    _updateBreathing(t) {
+        const cfg = this.config.breathing;
+        // Slow sine wave for natural breathing rhythm
+        const breath = (Math.sin(t * cfg.speed * 2 * Math.PI) + 1) / 2;
+        this._setParam('breath', breath * cfg.intensity);
     },
 
     // ============================================================
-    // positionModel()
+    // HEAD SWAY (subtle idle movement, more active when speaking)
     // ============================================================
-    positionModel() {
-        if (!this.model || !this.app) return;
+    _updateHeadSway(t) {
+        const cfg = this.config.headSway;
+        const mult = this.isSpeaking ? cfg.speakingMultiplier : 1.0;
 
-        const avatarDef = this.avatars[this.currentAvatarId];
-        const screenW = this.app.screen.width;
-        const screenH = this.app.screen.height;
-        const targetH = screenH * (avatarDef ? avatarDef.scale : 0.6);
-        const scale = targetH / this.model.height;
+        // Layered slow oscillations for natural feel
+        const swayX = (
+            Math.sin(t * cfg.speedX * 2 * Math.PI) * 0.6 +
+            Math.sin(t * cfg.speedX * 1.7 * 2 * Math.PI) * 0.4
+        ) * cfg.intensityX * mult;
 
-        this.model.scale.set(scale);
-        this.model.x = (screenW - this.model.width * scale) / 2;
-        this.model.y = (screenH - this.model.height * scale) / 2 - screenH * 0.05;
+        const swayY = (
+            Math.sin(t * cfg.speedY * 2 * Math.PI) * 0.7 +
+            Math.sin(t * cfg.speedY * 2.3 * 2 * Math.PI) * 0.3
+        ) * cfg.intensityY * mult;
+
+        this._setParam('angleX', swayX);
+        this._setParam('angleY', swayY);
     },
 
     // ============================================================
-    // startIdleMotion()
+    // BODY SWAY (very subtle, slower than head)
     // ============================================================
-    startIdleMotion() {
+    _updateBodySway(t) {
+        const cfg = this.config.bodySway;
+        const sway = Math.sin(t * cfg.speed * 2 * Math.PI) * cfg.intensity;
+        this._setParam('bodyAngleX', sway);
+    },
+
+    // ============================================================
+    // _setParam() - Set a Live2D parameter by logical name
+    // Maps logical names to model-specific parameter IDs
+    // ============================================================
+    _setParam(logicalName, value) {
         if (!this.model) return;
         const avatarDef = this.avatars[this.currentAvatarId];
-        if (!avatarDef || !avatarDef.idleMotion) return;
+        if (!avatarDef) return;
 
-        try {
-            const mm = this.model.internalModel.motionManager;
-            mm.startRandomMotion(avatarDef.idleMotion, PIXI.live2d.MotionPriority.IDLE);
-            console.log('[Avatar] ✓ Idle motion started');
-        } catch (e) {
-            console.warn('[Avatar] Idle motion failed (non-fatal):', e.message);
-        }
-    },
+        // Map logical name to parameter ID
+        const paramMap = {
+            mouth: avatarDef.mouthParam,
+            angleX: avatarDef.angleXParam,
+            angleY: avatarDef.angleYParam,
+            bodyAngleX: avatarDef.bodyAngleXParam,
+            breath: avatarDef.breathParam,
+        };
 
-    // ============================================================
-    // onTap()
-    // ============================================================
-    onTap() {
-        if (!this.model) return;
-        const avatarDef = this.avatars[this.currentAvatarId];
-        if (!avatarDef || !avatarDef.tapMotion) return;
-
-        try {
-            const mm = this.model.internalModel.motionManager;
-            mm.startRandomMotion(avatarDef.tapMotion, PIXI.live2d.MotionPriority.NORMAL);
-            console.log('[Avatar] Tap reaction');
-        } catch (e) {
-            console.warn('[Avatar] Tap motion failed:', e.message);
-        }
-    },
-
-    // ============================================================
-    // SPEAKING ANIMATION
-    // ============================================================
-    startSpeaking() {
-        if (!this.model || !this.app) return;
-        if (this.isSpeaking) return;
-
-        this.isSpeaking = true;
-        this._speakingTime = 0;
-        console.log('[Avatar] 🗣️ Speaking animation started');
-
-        this._speakingTicker = (delta) => this._animateMouth(delta);
-        this.app.ticker.add(this._speakingTicker);
-    },
-
-    stopSpeaking() {
-        if (!this.isSpeaking) return;
-        this.isSpeaking = false;
-
-        if (this._speakingTicker && this.app) {
-            this.app.ticker.remove(this._speakingTicker);
-            this._speakingTicker = null;
-        }
-        this._setMouthOpen(0);
-        console.log('[Avatar] 🗣️ Speaking animation stopped');
-    },
-
-    _animateMouth(delta) {
-        if (!this.model || !this.isSpeaking) return;
-        const cfg = this.config.speaking;
-
-        this._speakingTime += delta * 0.016667;
-
-        const primary = Math.sin(this._speakingTime * cfg.speed * 2 * Math.PI);
-        const secondary = Math.sin(this._speakingTime * cfg.speed * 1.3 * 2 * Math.PI) * 0.3;
-        const tertiary = Math.sin(this._speakingTime * cfg.speed * 3.7 * 2 * Math.PI) * 0.15;
-        const jitter = (Math.random() - 0.5) * cfg.randomness * 0.5;
-
-        let mouthValue = (primary + secondary + tertiary + jitter + 1) / 2;
-        mouthValue = cfg.minOpen + mouthValue * (cfg.maxOpen - cfg.minOpen);
-        mouthValue = Math.max(0, Math.min(1, mouthValue));
-
-        this._setMouthOpen(mouthValue);
-    },
-
-    _setMouthOpen(value) {
-        if (!this.model) return;
-        const avatarDef = this.avatars[this.currentAvatarId];
-        const paramId = avatarDef ? avatarDef.mouthParam : 'PARAM_MOUTH_OPEN_Y';
+        const paramId = paramMap[logicalName];
+        if (!paramId) return;
 
         try {
             const coreModel = this.model.internalModel.coreModel;
             if (coreModel.setParamFloat) {
                 coreModel.setParamFloat(paramId, value);
-            } else if (coreModel.setParameterValueById) {
-                coreModel.setParameterValueById(paramId, value);
             }
-        } catch (e) { /* silent */ }
+        } catch (e) { /* silent - param may not exist on all models */ }
     },
 
     // ============================================================
-    // setThinking()
+    // STATE TRANSITIONS
     // ============================================================
+    startSpeaking() {
+        if (!this.model || !this.app) return;
+        if (this.isSpeaking) return;
+        this.isSpeaking = true;
+        console.log('[Avatar] 🗣️ → Speaking state');
+    },
+
+    stopSpeaking() {
+        if (!this.isSpeaking) return;
+        this.isSpeaking = false;
+        // Mouth closes smoothly via the animation loop (no abrupt reset)
+        console.log('[Avatar] 🗣️ → Idle state');
+    },
+
+    setListening(listening) {
+        this.isListening = listening;
+        console.log('[Avatar]', listening ? '🎤 → Listening state' : '🎤 → End listening');
+    },
+
     setThinking(thinking) {
         this.isThinking = thinking;
         const status = document.getElementById('avatar-status');
@@ -334,24 +347,103 @@ const AvatarManager = {
     },
 
     // ============================================================
-    // _updateSelectorUI() - Highlight the active avatar in selector
+    // AVATAR SWITCHING
     // ============================================================
+    async switchAvatar(avatarId) {
+        if (!this.avatars[avatarId]) {
+            console.error('[Avatar] Unknown avatar ID:', avatarId);
+            return;
+        }
+        if (avatarId === this.currentAvatarId && this.isLoaded) return;
+
+        console.log('[Avatar] Switching to:', avatarId);
+        this.stopSpeaking();
+        this.unloadModel();
+        this.currentAvatarId = avatarId;
+        await this.loadAvatar(avatarId);
+        this._updateSelectorUI(avatarId);
+        console.log('[Avatar] ✓ Switched to:', this.avatars[avatarId].name);
+    },
+
+    async loadAvatar(avatarId) {
+        const avatarDef = this.avatars[avatarId];
+        if (!avatarDef) throw new Error('Avatar not found: ' + avatarId);
+
+        console.log('[Avatar] Loading:', avatarDef.name);
+        try {
+            this.model = await PIXI.live2d.Live2DModel.from(avatarDef.modelUrl);
+            if (!this.model) throw new Error('Model load returned null');
+
+            this.app.stage.addChild(this.model);
+            this.positionModel();
+            this.startIdleMotion();
+
+            this.model.interactive = true;
+            this.model.buttonMode = true;
+            this.model.on('pointerdown', () => this.onTap());
+
+            this.isLoaded = true;
+            console.log('[Avatar] ✓ Avatar loaded:', avatarDef.name);
+        } catch (error) {
+            console.error('[Avatar] Failed to load:', error);
+            this.isLoaded = false;
+            this.showFallback('Failed to load avatar: ' + avatarDef.name);
+        }
+    },
+
+    unloadModel() {
+        if (this.model) {
+            this.model.removeAllListeners();
+            this.app.stage.removeChild(this.model);
+            this.model.destroy();
+            this.model = null;
+            this.isLoaded = false;
+        }
+    },
+
+    positionModel() {
+        if (!this.model || !this.app) return;
+        const avatarDef = this.avatars[this.currentAvatarId];
+        const screenW = this.app.screen.width;
+        const screenH = this.app.screen.height;
+        const targetH = screenH * (avatarDef ? avatarDef.scale : 0.6);
+        const scale = targetH / this.model.height;
+
+        this.model.scale.set(scale);
+        this.model.x = (screenW - this.model.width * scale) / 2;
+        this.model.y = (screenH - this.model.height * scale) / 2 - screenH * 0.05;
+    },
+
+    startIdleMotion() {
+        if (!this.model) return;
+        const avatarDef = this.avatars[this.currentAvatarId];
+        if (!avatarDef || !avatarDef.idleMotion) return;
+        try {
+            const mm = this.model.internalModel.motionManager;
+            mm.startRandomMotion(avatarDef.idleMotion, PIXI.live2d.MotionPriority.IDLE);
+        } catch (e) { /* non-fatal */ }
+    },
+
+    onTap() {
+        if (!this.model) return;
+        const avatarDef = this.avatars[this.currentAvatarId];
+        if (!avatarDef || !avatarDef.tapMotion) return;
+        try {
+            const mm = this.model.internalModel.motionManager;
+            mm.startRandomMotion(avatarDef.tapMotion, PIXI.live2d.MotionPriority.NORMAL);
+        } catch (e) { /* non-fatal */ }
+    },
+
     _updateSelectorUI(avatarId) {
         document.querySelectorAll('.avatar-option').forEach((el) => {
             el.classList.toggle('active', el.dataset.avatar === avatarId);
         });
     },
 
-    // ============================================================
-    // getAvatarList() - Returns array of available avatars
-    // ============================================================
     getAvatarList() {
         return Object.values(this.avatars);
     },
 
-    // ============================================================
-    // showFallback()
-    // ============================================================
     showFallback(errorDetail) {
         const container = document.getElementById('avatar-container');
         container.innerHTML = `

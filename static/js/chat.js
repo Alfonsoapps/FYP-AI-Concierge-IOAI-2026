@@ -1,19 +1,20 @@
 /* ============================================================
-   Chat Module - Handles user input, AI responses, and TTS playback
+   Chat Module - Message handling, TTS playback, state management
    
-   This module manages:
-   - Sending messages to the FastAPI backend (/chat endpoint)
-   - Displaying AI responses in the floating bubble
-   - Requesting and playing Text-to-Speech audio (/tts endpoint)
-   - Managing chat history
-   - Connecting responses to the avatar state
+   Manages the full conversation cycle:
+   - User input (typed or voice)
+   - AI response fetching
+   - TTS audio playback
+   - Avatar state coordination
+   - Interruption handling
+   
+   State machine: IDLE → WAITING → SPEAKING → IDLE
+   Interruptions are handled cleanly at any point.
    ============================================================ */
 
 const ChatManager = {
-    // Chat history stored in memory
     history: [],
-    
-    // DOM element references (set during init)
+
     elements: {
         input: null,
         sendBtn: null,
@@ -24,17 +25,18 @@ const ChatManager = {
     },
 
     // State
-    isWaiting: false,   // True while waiting for AI response
-    isSpeaking: false,  // True while TTS audio is playing
+    isWaiting: false,
+    isSpeaking: false,
+    _ttsAbortController: null,  // Allows canceling in-flight TTS requests
+    _currentBlobUrl: null,      // Track blob URL for cleanup
 
-    // Audio player for TTS (reused across responses)
+    // Audio player
     audioPlayer: null,
 
     // ============================================================
-    // INITIALIZATION
+    // init()
     // ============================================================
     init() {
-        // Get DOM references
         this.elements.input = document.getElementById('chat-input');
         this.elements.sendBtn = document.getElementById('send-btn');
         this.elements.responseBubble = document.getElementById('response-bubble');
@@ -42,13 +44,14 @@ const ChatManager = {
         this.elements.chatHistory = document.getElementById('chat-history');
         this.elements.historyToggle = document.getElementById('history-toggle');
 
-        // Create a reusable Audio element for TTS playback
+        // Audio player with event handlers
         this.audioPlayer = new Audio();
-        this.audioPlayer.addEventListener('play', () => this.onSpeechStart());
-        this.audioPlayer.addEventListener('ended', () => this.onSpeechEnd());
-        this.audioPlayer.addEventListener('error', (e) => this.onSpeechError(e));
+        this.audioPlayer.addEventListener('play', () => this._onPlayStart());
+        this.audioPlayer.addEventListener('ended', () => this._onPlayEnd());
+        this.audioPlayer.addEventListener('pause', () => this._onPlayPause());
+        this.audioPlayer.addEventListener('error', () => this._onPlayError());
 
-        // Event listeners
+        // Input events
         this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
         this.elements.input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -57,44 +60,48 @@ const ChatManager = {
             }
         });
 
-        // Toggle chat history panel
+        // History toggle
         this.elements.historyToggle.addEventListener('click', () => {
             this.elements.chatHistory.classList.toggle('visible');
         });
 
-        console.log('[Chat] Initialized with TTS support');
+        console.log('[Chat] ✓ Initialized');
     },
 
     // ============================================================
-    // SEND MESSAGE
-    // Sends user message → gets AI response → plays TTS
+    // sendMessage() - Main conversation entry point
+    // Handles both typed and voice input.
     // ============================================================
     async sendMessage() {
         const message = this.elements.input.value.trim();
-        if (!message || this.isWaiting) return;
+        if (!message) return;
 
-        // Clear input
+        // If already waiting, ignore (prevents double-send)
+        if (this.isWaiting) return;
+
+        // Clear input immediately
         this.elements.input.value = '';
 
-        // Stop any currently playing speech
-        this.stopSpeech();
+        // Interrupt any current speech/TTS
+        this.interruptSpeech();
 
-        // Add user message to history
-        this.addToHistory('user', message);
-
-        // Show typing indicator
-        this.showTypingIndicator();
-
-        // Tell avatar we're thinking
-        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-            AvatarManager.setThinking(true);
+        // Stop listening if active (voice sent the message)
+        if (typeof VoiceManager !== 'undefined' && VoiceManager.isListening) {
+            VoiceManager.abort();
         }
 
-        // Disable input
+        // Add to history
+        this.addToHistory('user', message);
+
+        // Show thinking state
+        this.showTypingIndicator();
+        this._setAvatarThinking(true);
         this.setWaiting(true);
 
+        console.log('[Chat] → Sending:', message.substring(0, 50));
+
         try {
-            // --- Step 1: Get AI response ---
+            // Fetch AI response
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -102,213 +109,218 @@ const ChatManager = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Request failed (${response.status})`);
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.detail || `Request failed (${response.status})`);
             }
 
             const data = await response.json();
             const reply = data.reply;
 
-            // Display the text response
+            // Display response
             this.showResponse(reply);
             this.addToHistory('bot', reply);
+            this._setAvatarThinking(false);
 
-            // Tell avatar we got a response
-            if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-                AvatarManager.setThinking(false);
-            }
+            console.log('[Chat] ← Response received (%d chars)', reply.length);
 
-            // --- Step 2: Request TTS and play audio ---
-            // This runs in the background (non-blocking)
-            this.speakResponse(reply);
+            // Speak the response (non-blocking)
+            this._speakResponse(reply);
 
         } catch (error) {
-            console.error('[Chat] Error:', error);
-            this.showResponse(`Sorry, something went wrong: ${error.message}`, true);
-
-            if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-                AvatarManager.setThinking(false);
-            }
+            console.error('[Chat] Error:', error.message);
+            this.showResponse('Sorry, something went wrong: ' + error.message, true);
+            this._setAvatarThinking(false);
         }
 
-        // Re-enable input
         this.setWaiting(false);
     },
 
     // ============================================================
-    // TEXT-TO-SPEECH
-    // Requests audio from /tts endpoint and plays it
+    // TTS PLAYBACK
     // ============================================================
-    async speakResponse(text) {
-        console.log('[Chat] Requesting TTS for response...');
+    async _speakResponse(text) {
+        // Cancel any previous in-flight TTS request
+        if (this._ttsAbortController) {
+            this._ttsAbortController.abort();
+        }
+        this._ttsAbortController = new AbortController();
 
         try {
-            // Request speech audio from the backend
             const response = await fetch('/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: text }),
+                signal: this._ttsAbortController.signal,
             });
 
             if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.detail || `TTS request failed (${response.status})`);
+                throw new Error('TTS request failed');
             }
 
-            // Get the audio as a blob
-            const audioBlob = await response.blob();
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
 
-            // Create a URL for the audio blob and play it
-            const audioUrl = URL.createObjectURL(audioBlob);
+            // Clean up previous blob
+            this._cleanupBlobUrl();
+            this._currentBlobUrl = url;
 
-            // Stop any previous audio
-            this.stopSpeech();
+            // Play audio
+            this.audioPlayer.src = url;
+            await this.audioPlayer.play();
 
-            // Play the new audio
-            this.audioPlayer.src = audioUrl;
-            this.audioPlayer.play().catch((e) => {
-                // Browser may block autoplay if user hasn't interacted yet
-                console.warn('[Chat] Audio autoplay blocked:', e.message);
-                console.warn('[Chat] User interaction required for first audio play.');
-            });
-
-            console.log('[Chat] TTS audio playing');
+            console.log('[Chat] 🔊 TTS playing');
 
         } catch (error) {
-            // TTS failure is non-fatal — the text response is already displayed
-            console.warn('[Chat] TTS failed (non-fatal):', error.message);
+            if (error.name === 'AbortError') {
+                console.log('[Chat] TTS request canceled (interrupted)');
+            } else {
+                console.warn('[Chat] TTS failed (non-fatal):', error.message);
+            }
+        } finally {
+            this._ttsAbortController = null;
         }
     },
 
     // ============================================================
-    // SPEECH PLAYBACK EVENTS
+    // AUDIO PLAYBACK EVENTS
     // ============================================================
-    onSpeechStart() {
+    _onPlayStart() {
         this.isSpeaking = true;
 
-        // Start avatar speaking animation
         if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
             AvatarManager.startSpeaking();
         }
 
-        // Show speaking indicator
         const status = document.getElementById('avatar-status');
         if (status) {
             status.innerHTML = '<span class="status-dot speaking"></span> Speaking...';
             status.classList.add('visible');
         }
-        console.log('[Chat] Speech started → avatar speaking');
+
+        console.log('[Chat] 🔊 → Speaking state');
     },
 
-    onSpeechEnd() {
+    _onPlayEnd() {
+        this._finishSpeaking();
+        console.log('[Chat] 🔊 → Idle state (ended)');
+    },
+
+    _onPlayPause() {
+        // Only finish if we're actually done (not just interrupted mid-play)
+        if (this.audioPlayer.currentTime > 0 && !this.audioPlayer.ended) {
+            // Paused mid-play (interruption)
+            this._finishSpeaking();
+            console.log('[Chat] 🔊 → Idle state (interrupted)');
+        }
+    },
+
+    _onPlayError() {
+        this._finishSpeaking();
+        console.warn('[Chat] 🔊 Audio error');
+    },
+
+    _finishSpeaking() {
         this.isSpeaking = false;
 
-        // Stop avatar speaking animation (returns to idle)
         if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
             AvatarManager.stopSpeaking();
         }
 
-        // Hide the speaking indicator
-        const status = document.getElementById('avatar-status');
-        if (status) {
-            status.classList.remove('visible');
+        // Hide status unless something else is active
+        if (!this.isWaiting) {
+            const status = document.getElementById('avatar-status');
+            if (status) status.classList.remove('visible');
         }
 
-        // Clean up the blob URL to free memory
-        if (this.audioPlayer.src.startsWith('blob:')) {
-            URL.revokeObjectURL(this.audioPlayer.src);
-        }
-        console.log('[Chat] Speech ended → avatar idle');
-    },
-
-    onSpeechError(event) {
-        this.isSpeaking = false;
-
-        // Stop avatar speaking animation on error too
-        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-            AvatarManager.stopSpeaking();
-        }
-
-        const status = document.getElementById('avatar-status');
-        if (status) {
-            status.classList.remove('visible');
-        }
-        console.warn('[Chat] Audio playback error:', event);
+        this._cleanupBlobUrl();
     },
 
     // ============================================================
-    // STOP SPEECH
-    // Stops any currently playing audio
+    // INTERRUPTION HANDLING
+    // Cleanly stops all speech-related activity
     // ============================================================
-    stopSpeech() {
+    interruptSpeech() {
+        // Cancel in-flight TTS request
+        if (this._ttsAbortController) {
+            this._ttsAbortController.abort();
+            this._ttsAbortController = null;
+        }
+
+        // Stop audio playback
         if (this.audioPlayer && !this.audioPlayer.paused) {
             this.audioPlayer.pause();
             this.audioPlayer.currentTime = 0;
         }
-        this.isSpeaking = false;
 
-        // Stop avatar speaking animation
-        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-            AvatarManager.stopSpeaking();
+        // Reset state
+        if (this.isSpeaking) {
+            this.isSpeaking = false;
+            if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
+                AvatarManager.stopSpeaking();
+            }
+        }
+
+        this._cleanupBlobUrl();
+    },
+
+    // Alias for backward compatibility
+    stopSpeech() {
+        this.interruptSpeech();
+    },
+
+    // ============================================================
+    // MEMORY MANAGEMENT
+    // ============================================================
+    _cleanupBlobUrl() {
+        if (this._currentBlobUrl) {
+            URL.revokeObjectURL(this._currentBlobUrl);
+            this._currentBlobUrl = null;
         }
     },
 
     // ============================================================
-    // DISPLAY RESPONSE
+    // AVATAR COORDINATION
+    // ============================================================
+    _setAvatarThinking(thinking) {
+        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
+            AvatarManager.setThinking(thinking);
+        }
+    },
+
+    // ============================================================
+    // UI METHODS
     // ============================================================
     showResponse(text, isError = false) {
         const bubble = this.elements.responseBubble;
         const textEl = this.elements.responseText;
-
         textEl.textContent = text;
         textEl.style.color = isError ? '#ef4444' : 'var(--text-primary)';
         bubble.classList.add('visible');
     },
 
-    // ============================================================
-    // TYPING INDICATOR
-    // ============================================================
     showTypingIndicator() {
-        const bubble = this.elements.responseBubble;
         const textEl = this.elements.responseText;
-
-        textEl.innerHTML = `
-            <div class="typing-indicator">
-                <span></span><span></span><span></span>
-            </div>
-        `;
-        bubble.classList.add('visible');
+        textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+        this.elements.responseBubble.classList.add('visible');
     },
 
-    // ============================================================
-    // CHAT HISTORY
-    // ============================================================
     addToHistory(role, text) {
         this.history.push({ role, text, timestamp: Date.now() });
 
         const historyEl = this.elements.chatHistory;
         const msgEl = document.createElement('div');
-        msgEl.className = `history-message ${role}`;
-        
-        const displayText = text.length > 200 ? text.substring(0, 200) + '...' : text;
-        msgEl.textContent = displayText;
-        
+        msgEl.className = 'history-message ' + role;
+        msgEl.textContent = text.length > 200 ? text.substring(0, 200) + '...' : text;
         historyEl.appendChild(msgEl);
         historyEl.scrollTop = historyEl.scrollHeight;
     },
 
-    // ============================================================
-    // UI STATE
-    // ============================================================
     setWaiting(waiting) {
         this.isWaiting = waiting;
         this.elements.input.disabled = waiting;
         this.elements.sendBtn.disabled = waiting;
-        
-        if (waiting) {
-            this.elements.input.placeholder = 'Waiting for response...';
-        } else {
-            this.elements.input.placeholder = 'Ask me anything about IOAI 2027...';
-        }
-    }
+        this.elements.input.placeholder = waiting
+            ? 'Waiting for response...'
+            : 'Ask me anything about IOAI 2027...';
+    },
 };

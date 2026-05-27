@@ -324,6 +324,7 @@ body {
     height: 100%;
     position: relative;
     z-index: 2;
+    transition: opacity 0.3s ease;
 }
 
 #avatar-canvas {
@@ -439,7 +440,13 @@ body {
 }
 .avatar-option:hover { border-color: var(--accent-border); transform: scale(1.1); }
 .avatar-option.active { border-color: var(--accent); background: rgba(124, 58, 237, 0.15); box-shadow: 0 0 8px var(--accent-glow); }
+.avatar-option.loading { animation: selector-loading 1s ease-in-out infinite; pointer-events: none; }
 .avatar-option-emoji { font-size: 0.9rem; }
+
+@keyframes selector-loading {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
 
 .selector-label {
     font-size: 0.72rem;

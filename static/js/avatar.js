@@ -347,7 +347,7 @@ const AvatarManager = {
     },
 
     // ============================================================
-    // AVATAR SWITCHING
+    // AVATAR SWITCHING (smooth fade transition)
     // ============================================================
     async switchAvatar(avatarId) {
         if (!this.avatars[avatarId]) {
@@ -356,13 +356,43 @@ const AvatarManager = {
         }
         if (avatarId === this.currentAvatarId && this.isLoaded) return;
 
-        console.log('[Avatar] Switching to:', avatarId);
+        console.log('[Avatar] 🔄 Switching to:', avatarId);
+
+        // Stop any active states
         this.stopSpeaking();
+        this._speakingIntensity = 0;
+        this._mouthCurrent = 0;
+
+        // Fade out current avatar
+        const container = document.getElementById('avatar-container');
+        if (container) container.style.opacity = '0';
+
+        // Show loading state on selector
+        this._updateSelectorUI(avatarId, true);
+
+        // Brief delay for fade-out to complete
+        await new Promise(r => setTimeout(r, 200));
+
+        // Unload and load
         this.unloadModel();
         this.currentAvatarId = avatarId;
-        await this.loadAvatar(avatarId);
-        this._updateSelectorUI(avatarId);
-        console.log('[Avatar] ✓ Switched to:', this.avatars[avatarId].name);
+
+        try {
+            await this.loadAvatar(avatarId);
+
+            // Fade in new avatar
+            if (container) {
+                container.style.transition = 'opacity 0.4s ease';
+                container.style.opacity = '1';
+            }
+
+            this._updateSelectorUI(avatarId, false);
+            console.log('[Avatar] ✓ Switched to:', this.avatars[avatarId].name);
+        } catch (e) {
+            // Restore visibility even on error
+            if (container) container.style.opacity = '1';
+            this._updateSelectorUI(avatarId, false);
+        }
     },
 
     async loadAvatar(avatarId) {
@@ -374,6 +404,8 @@ const AvatarManager = {
             this.model = await PIXI.live2d.Live2DModel.from(avatarDef.modelUrl);
             if (!this.model) throw new Error('Model load returned null');
 
+            // Set initial opacity to 0 (will be faded in by container)
+            this.model.alpha = 1;
             this.app.stage.addChild(this.model);
             this.positionModel();
             this.startIdleMotion();
@@ -436,9 +468,12 @@ const AvatarManager = {
         } catch (e) { /* non-fatal */ }
     },
 
-    _updateSelectorUI(avatarId) {
+    _updateSelectorUI(avatarId, isLoading) {
         document.querySelectorAll('.avatar-option').forEach((el) => {
-            el.classList.toggle('active', el.dataset.avatar === avatarId);
+            const isActive = el.dataset.avatar === avatarId;
+            el.classList.toggle('active', isActive);
+            el.classList.toggle('loading', isActive && isLoading);
+            el.disabled = isLoading;
         });
     },
 

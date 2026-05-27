@@ -131,7 +131,11 @@ const VoiceManager = {
             AvatarManager.setListening(true);
         }
 
-        // Show status
+        // Show top-bar listening indicator
+        const indicator = document.getElementById('listening-indicator');
+        if (indicator) indicator.classList.add('visible');
+
+        // Show avatar status
         const status = document.getElementById('avatar-status');
         if (status) {
             status.innerHTML = '<span class="status-dot listening"></span> Listening...';
@@ -192,6 +196,10 @@ const VoiceManager = {
         if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
             AvatarManager.setListening(false);
         }
+
+        // Hide top-bar listening indicator
+        const indicator = document.getElementById('listening-indicator');
+        if (indicator) indicator.classList.remove('visible');
 
         // Hide status only if nothing else is showing
         if (!ChatManager.isSpeaking && !ChatManager.isWaiting) {

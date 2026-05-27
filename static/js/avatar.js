@@ -148,7 +148,7 @@ const AvatarManager = {
             this.app = new PIXI.Application({
                 view: canvas,
                 autoStart: true,
-                resizeTo: window,
+                resizeTo: document.getElementById('avatar-container'),
                 backgroundAlpha: 0,
                 antialias: true,
             });

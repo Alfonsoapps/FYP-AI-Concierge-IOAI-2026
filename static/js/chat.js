@@ -1,36 +1,22 @@
 /* ============================================================
-   Chat Module - Message handling, TTS playback, state management
+   Chat Module - Side-by-side layout version
    
-   Manages the full conversation cycle:
-   - User input (typed or voice)
-   - AI response fetching
-   - TTS audio playback
-   - Avatar state coordination
-   - Interruption handling
-   
-   State machine: IDLE → WAITING → SPEAKING → IDLE
-   Interruptions are handled cleanly at any point.
+   Manages conversation in the left panel with message bubbles.
+   Handles TTS playback and avatar state coordination.
    ============================================================ */
 
 const ChatManager = {
     history: [],
-
     elements: {
         input: null,
         sendBtn: null,
-        responseBubble: null,
-        responseText: null,
-        chatHistory: null,
-        historyToggle: null,
+        messagesContainer: null,
     },
 
-    // State
     isWaiting: false,
     isSpeaking: false,
-    _ttsAbortController: null,  // Allows canceling in-flight TTS requests
-    _currentBlobUrl: null,      // Track blob URL for cleanup
-
-    // Audio player
+    _ttsAbortController: null,
+    _currentBlobUrl: null,
     audioPlayer: null,
 
     // ============================================================
@@ -39,12 +25,9 @@ const ChatManager = {
     init() {
         this.elements.input = document.getElementById('chat-input');
         this.elements.sendBtn = document.getElementById('send-btn');
-        this.elements.responseBubble = document.getElementById('response-bubble');
-        this.elements.responseText = document.getElementById('response-text');
-        this.elements.chatHistory = document.getElementById('chat-history');
-        this.elements.historyToggle = document.getElementById('history-toggle');
+        this.elements.messagesContainer = document.getElementById('chat-messages');
 
-        // Audio player with event handlers
+        // Audio player
         this.audioPlayer = new Audio();
         this.audioPlayer.addEventListener('play', () => this._onPlayStart());
         this.audioPlayer.addEventListener('ended', () => this._onPlayEnd());
@@ -60,48 +43,41 @@ const ChatManager = {
             }
         });
 
-        // History toggle
-        this.elements.historyToggle.addEventListener('click', () => {
-            this.elements.chatHistory.classList.toggle('visible');
-        });
+        // Backward compat: hidden elements
+        this.elements.responseBubble = document.getElementById('response-bubble');
+        this.elements.responseText = document.getElementById('response-text');
+        this.elements.chatHistory = document.getElementById('chat-history');
+        this.elements.historyToggle = document.getElementById('history-toggle');
 
-        console.log('[Chat] ✓ Initialized');
+        console.log('[Chat] ✓ Initialized (side-by-side layout)');
     },
 
     // ============================================================
-    // sendMessage() - Main conversation entry point
-    // Handles both typed and voice input.
+    // sendMessage()
     // ============================================================
     async sendMessage() {
         const message = this.elements.input.value.trim();
-        if (!message) return;
+        if (!message || this.isWaiting) return;
 
-        // If already waiting, ignore (prevents double-send)
-        if (this.isWaiting) return;
-
-        // Clear input immediately
         this.elements.input.value = '';
-
-        // Interrupt any current speech/TTS
         this.interruptSpeech();
 
-        // Stop listening if active (voice sent the message)
         if (typeof VoiceManager !== 'undefined' && VoiceManager.isListening) {
             VoiceManager.abort();
         }
 
-        // Add to history
-        this.addToHistory('user', message);
+        // Add user message bubble
+        this._addMessage('user', message);
+        this.history.push({ role: 'user', text: message, timestamp: Date.now() });
 
-        // Show thinking state
-        this.showTypingIndicator();
+        // Show typing indicator
+        const typingEl = this._addTypingIndicator();
         this._setAvatarThinking(true);
         this.setWaiting(true);
 
         console.log('[Chat] → Sending:', message.substring(0, 50));
 
         try {
-            // Fetch AI response
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -116,33 +92,61 @@ const ChatManager = {
             const data = await response.json();
             const reply = data.reply;
 
-            // Display response
-            this.showResponse(reply);
-            this.addToHistory('bot', reply);
+            // Remove typing indicator, add bot message
+            typingEl.remove();
+            this._addMessage('bot', reply);
+            this.history.push({ role: 'bot', text: reply, timestamp: Date.now() });
             this._setAvatarThinking(false);
 
-            console.log('[Chat] ← Response received (%d chars)', reply.length);
+            console.log('[Chat] ← Response (%d chars)', reply.length);
 
-            // Speak the response (non-blocking)
+            // Speak
             this._speakResponse(reply);
 
         } catch (error) {
-            console.error('[Chat] Error:', error.message);
-            this.showResponse('Sorry, something went wrong: ' + error.message, true);
+            typingEl.remove();
+            this._addMessage('bot', 'Sorry, something went wrong: ' + error.message);
             this._setAvatarThinking(false);
+            console.error('[Chat] Error:', error.message);
         }
 
         this.setWaiting(false);
     },
 
     // ============================================================
+    // MESSAGE RENDERING
+    // ============================================================
+    _addMessage(role, text) {
+        const container = this.elements.messagesContainer;
+        const msgEl = document.createElement('div');
+        msgEl.className = 'msg ' + role;
+        msgEl.innerHTML = '<div class="msg-content">' + this._escapeHtml(text) + '</div>';
+        container.appendChild(msgEl);
+        container.scrollTop = container.scrollHeight;
+        return msgEl;
+    },
+
+    _addTypingIndicator() {
+        const container = this.elements.messagesContainer;
+        const msgEl = document.createElement('div');
+        msgEl.className = 'msg bot';
+        msgEl.innerHTML = '<div class="msg-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+        container.appendChild(msgEl);
+        container.scrollTop = container.scrollHeight;
+        return msgEl;
+    },
+
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    // ============================================================
     // TTS PLAYBACK
     // ============================================================
     async _speakResponse(text) {
-        // Cancel any previous in-flight TTS request
-        if (this._ttsAbortController) {
-            this._ttsAbortController.abort();
-        }
+        if (this._ttsAbortController) this._ttsAbortController.abort();
         this._ttsAbortController = new AbortController();
 
         try {
@@ -153,28 +157,18 @@ const ChatManager = {
                 signal: this._ttsAbortController.signal,
             });
 
-            if (!response.ok) {
-                throw new Error('TTS request failed');
-            }
+            if (!response.ok) throw new Error('TTS failed');
 
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-
-            // Clean up previous blob
             this._cleanupBlobUrl();
             this._currentBlobUrl = url;
 
-            // Play audio
             this.audioPlayer.src = url;
             await this.audioPlayer.play();
-
-            console.log('[Chat] 🔊 TTS playing');
-
         } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('[Chat] TTS request canceled (interrupted)');
-            } else {
-                console.warn('[Chat] TTS failed (non-fatal):', error.message);
+            if (error.name !== 'AbortError') {
+                console.warn('[Chat] TTS failed:', error.message);
             }
         } finally {
             this._ttsAbortController = null;
@@ -182,145 +176,75 @@ const ChatManager = {
     },
 
     // ============================================================
-    // AUDIO PLAYBACK EVENTS
+    // AUDIO EVENTS
     // ============================================================
     _onPlayStart() {
         this.isSpeaking = true;
-
-        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-            AvatarManager.startSpeaking();
-        }
-
+        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) AvatarManager.startSpeaking();
         const status = document.getElementById('avatar-status');
         if (status) {
             status.innerHTML = '<span class="status-dot speaking"></span> Speaking...';
             status.classList.add('visible');
         }
-
-        console.log('[Chat] 🔊 → Speaking state');
     },
 
-    _onPlayEnd() {
-        this._finishSpeaking();
-        console.log('[Chat] 🔊 → Idle state (ended)');
-    },
-
+    _onPlayEnd() { this._finishSpeaking(); },
     _onPlayPause() {
-        // Only finish if we're actually done (not just interrupted mid-play)
-        if (this.audioPlayer.currentTime > 0 && !this.audioPlayer.ended) {
-            // Paused mid-play (interruption)
-            this._finishSpeaking();
-            console.log('[Chat] 🔊 → Idle state (interrupted)');
-        }
+        if (this.audioPlayer.currentTime > 0 && !this.audioPlayer.ended) this._finishSpeaking();
     },
-
-    _onPlayError() {
-        this._finishSpeaking();
-        console.warn('[Chat] 🔊 Audio error');
-    },
+    _onPlayError() { this._finishSpeaking(); },
 
     _finishSpeaking() {
         this.isSpeaking = false;
-
-        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-            AvatarManager.stopSpeaking();
-        }
-
-        // Hide status unless something else is active
+        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) AvatarManager.stopSpeaking();
         if (!this.isWaiting) {
             const status = document.getElementById('avatar-status');
             if (status) status.classList.remove('visible');
         }
-
         this._cleanupBlobUrl();
     },
 
     // ============================================================
-    // INTERRUPTION HANDLING
-    // Cleanly stops all speech-related activity
+    // INTERRUPTION
     // ============================================================
     interruptSpeech() {
-        // Cancel in-flight TTS request
-        if (this._ttsAbortController) {
-            this._ttsAbortController.abort();
-            this._ttsAbortController = null;
-        }
-
-        // Stop audio playback
+        if (this._ttsAbortController) { this._ttsAbortController.abort(); this._ttsAbortController = null; }
         if (this.audioPlayer && !this.audioPlayer.paused) {
             this.audioPlayer.pause();
             this.audioPlayer.currentTime = 0;
         }
-
-        // Reset state
         if (this.isSpeaking) {
             this.isSpeaking = false;
-            if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-                AvatarManager.stopSpeaking();
-            }
+            if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) AvatarManager.stopSpeaking();
         }
-
         this._cleanupBlobUrl();
     },
 
-    // Alias for backward compatibility
-    stopSpeech() {
-        this.interruptSpeech();
-    },
+    stopSpeech() { this.interruptSpeech(); },
 
-    // ============================================================
-    // MEMORY MANAGEMENT
-    // ============================================================
     _cleanupBlobUrl() {
-        if (this._currentBlobUrl) {
-            URL.revokeObjectURL(this._currentBlobUrl);
-            this._currentBlobUrl = null;
-        }
+        if (this._currentBlobUrl) { URL.revokeObjectURL(this._currentBlobUrl); this._currentBlobUrl = null; }
     },
 
     // ============================================================
-    // AVATAR COORDINATION
+    // AVATAR & UI STATE
     // ============================================================
     _setAvatarThinking(thinking) {
-        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) {
-            AvatarManager.setThinking(thinking);
-        }
-    },
-
-    // ============================================================
-    // UI METHODS
-    // ============================================================
-    showResponse(text, isError = false) {
-        const bubble = this.elements.responseBubble;
-        const textEl = this.elements.responseText;
-        textEl.textContent = text;
-        textEl.style.color = isError ? '#ef4444' : 'var(--text-primary)';
-        bubble.classList.add('visible');
-    },
-
-    showTypingIndicator() {
-        const textEl = this.elements.responseText;
-        textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
-        this.elements.responseBubble.classList.add('visible');
-    },
-
-    addToHistory(role, text) {
-        this.history.push({ role, text, timestamp: Date.now() });
-
-        const historyEl = this.elements.chatHistory;
-        const msgEl = document.createElement('div');
-        msgEl.className = 'history-message ' + role;
-        msgEl.textContent = text.length > 200 ? text.substring(0, 200) + '...' : text;
-        historyEl.appendChild(msgEl);
-        historyEl.scrollTop = historyEl.scrollHeight;
+        if (typeof AvatarManager !== 'undefined' && AvatarManager.isLoaded) AvatarManager.setThinking(thinking);
     },
 
     setWaiting(waiting) {
         this.isWaiting = waiting;
         this.elements.input.disabled = waiting;
         this.elements.sendBtn.disabled = waiting;
-        this.elements.input.placeholder = waiting
-            ? 'Waiting for response...'
-            : 'Ask me anything about IOAI 2027...';
+        this.elements.input.placeholder = waiting ? 'Waiting for response...' : 'Ask me anything about IOAI 2027...';
     },
+
+    // Backward compat methods (used by voice module)
+    showResponse(text, isError) {
+        this._addMessage('bot', text);
+    },
+
+    showTypingIndicator() { /* handled inline now */ },
+    addToHistory(role, text) { /* handled inline now */ },
 };

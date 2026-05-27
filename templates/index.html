@@ -5,139 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Concierge - IOAI 2027 Singapore</title>
 
-    <!-- 
-        Dependencies loaded via CDN (ORDER MATTERS!):
-        1. PixiJS v6.5.10 - 2D WebGL rendering engine (sets window.PIXI)
-        2. live2d.min.js - Cubism 2.1 runtime (required for Cubism2 models like Shizuku)
-        3. pixi-live2d-display cubism2 bundle - Live2D plugin for PixiJS
-           (registers PIXI.live2d namespace with Live2DModel, MotionPriority, etc.)
-    -->
+    <!-- Live2D Dependencies (order matters) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js"></script>
 
-    <!-- Custom styles -->
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
     <!-- ============================================================
-         HEADER - Small branding bar at the top
+         MAIN LAYOUT: Left (Chat) | Right (Avatar)
          ============================================================ -->
-    <header id="app-header">
-        <div class="app-title">
-            <span class="logo-dot"></span>
-            IOAI 2027 AI Concierge
-        </div>
-    </header>
+    <div id="app-layout">
 
-    <!-- ============================================================
-         AVATAR CONTAINER
-         This is the main visual area. The Live2D model renders here.
-         It takes up the full viewport as the primary experience.
-         ============================================================ -->
-    <div id="avatar-container">
-        <canvas id="avatar-canvas"></canvas>
+        <!-- LEFT PANEL: Chat & Conversation -->
+        <aside id="chat-side">
+            <!-- Header / Branding -->
+            <div id="chat-header">
+                <div class="app-title">
+                    <span class="logo-dot"></span>
+                    IOAI 2027 AI Concierge
+                </div>
+            </div>
+
+            <!-- Conversation messages area -->
+            <div id="chat-messages">
+                <!-- Welcome message -->
+                <div class="msg bot">
+                    <div class="msg-content">Hello! I'm your AI concierge for IOAI 2027 in Singapore. Ask me anything about the event, travel, food, or local tips!</div>
+                </div>
+            </div>
+
+            <!-- Input area at bottom of chat panel -->
+            <div id="chat-input-area">
+                <button id="mic-btn" aria-label="Start voice input" title="Click to speak">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                </button>
+                <input
+                    type="text"
+                    id="chat-input"
+                    placeholder="Ask me anything about IOAI 2027..."
+                    autocomplete="off"
+                >
+                <button id="send-btn" aria-label="Send message">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- RIGHT PANEL: Avatar Display -->
+        <main id="avatar-side">
+            <!-- Avatar canvas (Live2D renders here) -->
+            <div id="avatar-container">
+                <canvas id="avatar-canvas"></canvas>
+            </div>
+
+            <!-- Status indicator (Thinking / Speaking / Listening) -->
+            <div id="avatar-status">
+                <span class="status-dot"></span>
+                <span>Ready</span>
+            </div>
+
+            <!-- Avatar selector -->
+            <div id="avatar-selector">
+                <button class="avatar-option active" data-avatar="shizuku" title="Female Concierge">
+                    <span class="avatar-option-emoji">👩</span>
+                </button>
+                <button class="avatar-option" data-avatar="koharu" title="Male Concierge">
+                    <span class="avatar-option-emoji">👨</span>
+                </button>
+                <button class="avatar-option" data-avatar="hijiki" title="AI Assistant">
+                    <span class="avatar-option-emoji">🤖</span>
+                </button>
+            </div>
+        </main>
     </div>
 
-    <!-- Status indicator (shows "Thinking..." during AI calls) -->
-    <div id="avatar-status">
-        <span class="status-dot"></span>
-        <span>Ready</span>
-    </div>
+    <!-- Hidden elements for backward compatibility -->
+    <div id="response-bubble" style="display:none"><div id="response-text"></div></div>
+    <div id="chat-history" style="display:none"></div>
+    <button id="history-toggle" style="display:none"></button>
+    <div id="voice-indicator" style="display:none"></div>
 
-    <!-- ============================================================
-         AVATAR SELECTOR - Compact floating panel to switch avatars
-         ============================================================ -->
-    <div id="avatar-selector">
-        <button class="avatar-option active" data-avatar="shizuku" title="Female Concierge">
-            <span class="avatar-option-emoji">👩</span>
-        </button>
-        <button class="avatar-option" data-avatar="koharu" title="Male Concierge">
-            <span class="avatar-option-emoji">👨</span>
-        </button>
-        <button class="avatar-option" data-avatar="hijiki" title="AI Assistant">
-            <span class="avatar-option-emoji">🤖</span>
-        </button>
-    </div>
-
-    <!-- ============================================================
-         CHAT PANEL - Compact floating input at the bottom
-         Intentionally small so the avatar stays the focus.
-         ============================================================ -->
-    <div id="chat-panel">
-        <!-- AI response bubble (hidden until first response) -->
-        <div id="response-bubble">
-            <div class="response-label">AI Concierge</div>
-            <div id="response-text"></div>
-        </div>
-
-        <!-- Message input -->
-        <div id="chat-input-area">
-            <button id="mic-btn" aria-label="Start voice input" title="Click to speak">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </svg>
-            </button>
-            <input
-                type="text"
-                id="chat-input"
-                placeholder="Ask me anything about IOAI 2027..."
-                autocomplete="off"
-            >
-            <button id="send-btn" aria-label="Send message">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <!-- ============================================================
-         CHAT HISTORY - Expandable panel (toggled by button)
-         ============================================================ -->
-    <div id="chat-history"></div>
-    <button id="history-toggle" aria-label="Toggle chat history">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-        </svg>
-    </button>
-
-    <!-- Future: voice/speech indicator placeholder -->
-    <div id="voice-indicator"></div>
-
-    <!-- ============================================================
-         JAVASCRIPT
-         avatar.js - Live2D rendering and animation
-         chat.js   - Message sending and response display
-         ============================================================ -->
-    <!-- Application scripts (avatar.js depends on PIXI and PIXI.live2d) -->
+    <!-- Scripts -->
     <script src="/static/js/avatar.js"></script>
     <script src="/static/js/chat.js"></script>
     <script src="/static/js/voice.js"></script>
 
     <script>
-        // Boot the application when the page is ready
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('[App] Starting AI Concierge...');
-
-            // Initialize chat (lightweight, instant)
             ChatManager.init();
-
-            // Initialize voice input (Web Speech API)
             VoiceManager.init();
-
-            // Initialize avatar (async, loads model from CDN)
             await AvatarManager.init();
 
-            // Wire up avatar selector buttons
+            // Avatar selector
             document.querySelectorAll('.avatar-option').forEach((btn) => {
                 btn.addEventListener('click', async () => {
                     const avatarId = btn.dataset.avatar;
-                    if (avatarId) {
-                        await AvatarManager.switchAvatar(avatarId);
-                    }
+                    if (avatarId) await AvatarManager.switchAvatar(avatarId);
                 });
             });
 

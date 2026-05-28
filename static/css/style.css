@@ -275,29 +275,48 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden; /* Clips avatar that extends beyond container */
+    overflow: hidden;
+    background: radial-gradient(ellipse at 50% 45%, rgba(124, 58, 237, 0.05) 0%, transparent 60%);
 }
 
-/* HUD ring decorations */
+/* === LAYERED HUD RING EFFECTS === */
 .hud-ring {
     position: absolute;
-    width: 520px;
-    height: 520px;
     border-radius: 50%;
-    border: 1px solid rgba(124, 58, 237, 0.12);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
-    animation: ring-rotate 30s linear infinite;
+    /* Ring 1: Main visible ring */
+    width: 55vh;
+    height: 55vh;
+    border: 1.5px solid rgba(124, 58, 237, 0.25);
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.08), inset 0 0 15px rgba(124, 58, 237, 0.04);
+    animation: ring-rotate 35s linear infinite;
 }
 
 .hud-ring-2 {
-    width: 620px;
-    height: 620px;
-    border-color: rgba(124, 58, 237, 0.06);
-    animation-duration: 45s;
-    animation-direction: reverse;
+    /* Ring 2: Larger outer ring */
+    width: 72vh;
+    height: 72vh;
+    border: 1px solid rgba(124, 58, 237, 0.12);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.05);
+    animation: ring-rotate 50s linear infinite reverse;
+}
+
+/* Ring 3: Outermost subtle ring (via pseudo-element) */
+#avatar-area::after {
+    content: '';
+    position: absolute;
+    width: 88vh;
+    height: 88vh;
+    border-radius: 50%;
+    border: 1px solid rgba(124, 58, 237, 0.06);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: ring-rotate 70s linear infinite;
 }
 
 @keyframes ring-rotate {
@@ -305,20 +324,20 @@ body {
     to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* Ambient glow */
+/* === AMBIENT GLOW (layered radial gradients) === */
 #avatar-area::before {
     content: '';
     position: absolute;
-    width: 500px;
-    height: 500px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 40%, rgba(124, 58, 237, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(100, 40, 220, 0.06) 0%, transparent 60%),
+        radial-gradient(circle at 45% 60%, rgba(80, 30, 200, 0.04) 0%, transparent 50%);
     pointer-events: none;
+    z-index: 0;
 }
 
+/* === AVATAR CONTAINER === */
 #avatar-container {
     width: 100%;
     height: 100%;
@@ -466,8 +485,6 @@ body {
    ============================================================ */
 @media (max-width: 900px) {
     #chat-panel { width: 360px; min-width: 300px; padding: 16px 16px 12px 20px; }
-    .hud-ring { width: 380px; height: 380px; }
-    .hud-ring-2 { width: 460px; height: 460px; }
 }
 
 @media (max-width: 700px) {
@@ -475,6 +492,7 @@ body {
     #chat-panel { width: 100%; min-width: unset; height: 55vh; padding: 12px 14px 10px; }
     #avatar-area { height: 45vh; }
     .hud-ring, .hud-ring-2 { display: none; }
+    #avatar-area::after { display: none; }
     #avatar-podium { bottom: 30px; }
     .disclaimer { display: none; }
 }

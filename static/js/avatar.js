@@ -439,22 +439,21 @@ const AvatarManager = {
         const screenW = this.app.screen.width;
         const screenH = this.app.screen.height;
 
-        // Scale to fill ~90% of container height
-        // Using a large multiplier so avatar dominates the right side
+        // Scale avatar to fill most of the container height
         const scaleFactor = avatarDef ? avatarDef.scale : 1.4;
         const targetH = screenH * scaleFactor;
         const scale = targetH / this.model.height;
 
         this.model.scale.set(scale);
 
-        // Center horizontally
+        // Center horizontally within the container
         const modelW = this.model.width * scale;
         this.model.x = (screenW - modelW) / 2;
 
-        // Position: push upward so face is in upper third
-        // The model's anchor is top-left, so we offset to get face near top
+        // Vertical: position face in upper portion
+        // 0.25 factor pushes model up so face is near top-third
         const modelH = this.model.height * scale;
-        this.model.y = (screenH - modelH) * 0.3;
+        this.model.y = (screenH - modelH) * 0.25;
     },
 
     startIdleMotion() {

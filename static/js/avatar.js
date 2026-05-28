@@ -42,7 +42,7 @@ const AvatarManager = {
             name: 'Female Concierge',
             emoji: '👩',
             modelUrl: 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json',
-            scale: 0.82,
+            scale: 1.15,
             idleMotion: 'idle',
             tapMotion: 'tap_body',
             mouthParam: 'PARAM_MOUTH_OPEN_Y',
@@ -56,7 +56,7 @@ const AvatarManager = {
             name: 'Male Concierge',
             emoji: '👨',
             modelUrl: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-koharu/assets/koharu.model.json',
-            scale: 0.75,
+            scale: 1.05,
             idleMotion: 'idle',
             tapMotion: '',
             mouthParam: 'PARAM_MOUTH_OPEN_Y',
@@ -70,7 +70,7 @@ const AvatarManager = {
             name: 'AI Assistant',
             emoji: '🤖',
             modelUrl: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-hijiki/assets/hijiki.model.json',
-            scale: 0.75,
+            scale: 1.05,
             idleMotion: 'idle',
             tapMotion: '',
             mouthParam: 'PARAM_MOUTH_OPEN_Y',
@@ -438,14 +438,15 @@ const AvatarManager = {
         const avatarDef = this.avatars[this.currentAvatarId];
         const screenW = this.app.screen.width;
         const screenH = this.app.screen.height;
-        const targetH = screenH * (avatarDef ? avatarDef.scale : 0.8);
+        const targetH = screenH * (avatarDef ? avatarDef.scale : 1.0);
         const scale = targetH / this.model.height;
 
         this.model.scale.set(scale);
-        // Center horizontally
+        // Center horizontally, slight right bias to fill the space
         this.model.x = (screenW - this.model.width * scale) / 2;
-        // Position slightly above center for conversational eye-level
-        this.model.y = (screenH - this.model.height * scale) / 2 - screenH * 0.08;
+        // Position so face is at upper-third (conversational eye level)
+        // Negative Y moves model up; larger avatars need more offset
+        this.model.y = (screenH - this.model.height * scale) / 2 - screenH * 0.04;
     },
 
     startIdleMotion() {

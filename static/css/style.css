@@ -275,7 +275,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: hidden; /* Clips avatar that extends beyond container */
 }
 
 /* HUD ring decorations */

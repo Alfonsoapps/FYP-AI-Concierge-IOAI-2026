@@ -34,6 +34,22 @@ const ChatManager = {
         this.audioPlayer.addEventListener('pause', () => this._onPlayPause());
         this.audioPlayer.addEventListener('error', () => this._onPlayError());
 
+        // Mobile audio unlock: play a silent audio on first user interaction
+        // This "unlocks" the audio context so future programmatic plays work
+        const unlockAudio = () => {
+            this.audioPlayer.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAABhgFCnMkAAAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAABhgFCnMkAAAAAAAAAAAAAAAAA';
+            this.audioPlayer.play().then(() => {
+                this.audioPlayer.pause();
+                this.audioPlayer.currentTime = 0;
+                this.audioPlayer.src = '';
+                console.log('[Chat] ✓ Mobile audio unlocked');
+            }).catch(() => {});
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('click', unlockAudio);
+        };
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('click', unlockAudio, { once: true });
+
         // Input events
         this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
         this.elements.input.addEventListener('keypress', (e) => {

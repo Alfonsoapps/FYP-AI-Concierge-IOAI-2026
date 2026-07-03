@@ -1,0 +1,135 @@
+/* ============================================================
+   Bottom Navigation Bar - Shared across all platform pages
+   ============================================================ */
+
+.bottom-nav {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(14, 14, 32, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 24px;
+    padding: 8px 12px;
+    z-index: 1000;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(124, 58, 237, 0.08);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 16px;
+    border-radius: 16px;
+    text-decoration: none;
+    color: #6060880;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.nav-item svg {
+    width: 20px;
+    height: 20px;
+    stroke: #606080;
+    transition: stroke 0.2s ease;
+}
+
+.nav-item span {
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: #606080;
+    transition: color 0.2s ease;
+}
+
+/* Hover state */
+.nav-item:hover {
+    background: rgba(124, 58, 237, 0.08);
+}
+
+.nav-item:hover svg {
+    stroke: #a78bfa;
+}
+
+.nav-item:hover span {
+    color: #a78bfa;
+}
+
+/* Active state */
+.nav-item.active {
+    background: rgba(124, 58, 237, 0.15);
+}
+
+.nav-item.active svg {
+    stroke: #7c3aed;
+}
+
+.nav-item.active span {
+    color: #7c3aed;
+    font-weight: 600;
+}
+
+/* Center Guide button - slightly elevated */
+.nav-item-center .nav-center-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: -12px;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    transition: all 0.2s ease;
+}
+
+.nav-item-center .nav-center-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: white;
+}
+
+.nav-item-center:hover .nav-center-icon {
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.6);
+}
+
+.nav-item-center.active .nav-center-icon {
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.6);
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .bottom-nav {
+        left: 8px;
+        right: 8px;
+        transform: none;
+        width: auto;
+        padding: 6px 8px;
+    }
+
+    .nav-item {
+        padding: 6px 10px;
+    }
+
+    .nav-item svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .nav-item span {
+        font-size: 0.6rem;
+    }
+
+    .nav-item-center .nav-center-icon {
+        width: 36px;
+        height: 36px;
+        margin-top: -10px;
+    }
+}

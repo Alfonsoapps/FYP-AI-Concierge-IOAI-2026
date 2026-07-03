@@ -11,9 +11,10 @@ Routes:
 """
 
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.templating import Jinja2Templates
 
 from app.config import get_settings
 from app.routers import chat
@@ -34,6 +35,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Jinja2 templates
+templates = Jinja2Templates(directory="templates")
+
 # Register API routers (chat, TTS, RAG)
 app.include_router(chat.router)
 app.include_router(tts.router)
@@ -48,9 +52,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # ============================================================
 
 @app.get("/")
-async def home_page():
+async def home_page(request: Request):
     """Home page - platform landing."""
-    return FileResponse("templates/home.html")
+    return templates.TemplateResponse("home.html", {"request": request, "active_page": "home"})
 
 
 @app.get("/guide")
@@ -60,21 +64,21 @@ async def guide_page():
 
 
 @app.get("/map")
-async def map_page():
+async def map_page(request: Request):
     """Map page - coming soon."""
-    return FileResponse("templates/map.html")
+    return templates.TemplateResponse("map.html", {"request": request, "active_page": "map"})
 
 
 @app.get("/schedule")
-async def schedule_page():
+async def schedule_page(request: Request):
     """Schedule page - coming soon."""
-    return FileResponse("templates/schedule.html")
+    return templates.TemplateResponse("schedule.html", {"request": request, "active_page": "schedule"})
 
 
 @app.get("/profile")
-async def profile_page():
+async def profile_page(request: Request):
     """Profile page - coming soon."""
-    return FileResponse("templates/profile.html")
+    return templates.TemplateResponse("profile.html", {"request": request, "active_page": "profile"})
 
 
 @app.get("/health")

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IOAI 2027 Singapore - Participant Platform</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -15,6 +16,7 @@
             align-items: center;
             justify-content: center;
             -webkit-font-smoothing: antialiased;
+            padding-bottom: 80px;
         }
         .container {
             text-align: center;
@@ -39,5 +41,7 @@
         <h1>Welcome to IOAI 2027 Singapore</h1>
         <p>This is the participant companion platform.</p>
     </div>
+
+    {% include 'partials/navbar.html' %}
 </body>
 </html>

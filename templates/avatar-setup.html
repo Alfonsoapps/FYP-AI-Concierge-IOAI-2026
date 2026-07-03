@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Setup - IOAI 2027</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0c0c1d;
+            color: #e8e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+            padding: 20px;
+        }
+
+        .setup-card {
+            width: 100%;
+            max-width: 480px;
+            background: rgba(14, 14, 32, 0.9);
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: 20px;
+            padding: 40px 32px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(124, 58, 237, 0.06);
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .setup-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .setup-header p {
+            font-size: 0.88rem;
+            color: #8080a0;
+        }
+
+        .category {
+            margin-bottom: 24px;
+        }
+
+        .category-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #a0a0c0;
+            margin-bottom: 10px;
+            letter-spacing: 0.03em;
+        }
+
+        .options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .option-btn {
+            flex: 1;
+            min-width: 90px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: #a0a0c0;
+            font-size: 0.84rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .option-btn:hover {
+            background: rgba(124, 58, 237, 0.08);
+            border-color: rgba(124, 58, 237, 0.3);
+            color: #e8e8f0;
+        }
+
+        .option-btn.selected {
+            background: rgba(124, 58, 237, 0.15);
+            border-color: #7c3aed;
+            color: #e8e8f0;
+            box-shadow: 0 0 10px rgba(124, 58, 237, 0.2);
+        }
+
+        .error-msg {
+            font-size: 0.72rem;
+            color: #ef4444;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .category.has-error .error-msg {
+            display: block;
+        }
+
+        .category.has-error .options .option-btn {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-start:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-card">
+        <div class="setup-header">
+            <h1>Customize Your Avatar</h1>
+            <p>Choose your look for IOAI 2027.</p>
+        </div>
+
+        <!-- Outfit -->
+        <div class="category" id="cat-outfit" data-key="avatar_outfit">
+            <div class="category-label">Outfit</div>
+            <div class="options">
+                <button class="option-btn" data-value="Casual">Casual</button>
+                <button class="option-btn" data-value="Formal">Formal</button>
+                <button class="option-btn" data-value="IOAI Uniform">IOAI Uniform</button>
+            </div>
+            <div class="error-msg">Please select an outfit.</div>
+        </div>
+
+        <!-- Eyes -->
+        <div class="category" id="cat-eyes" data-key="avatar_eyes">
+            <div class="category-label">Eyes</div>
+            <div class="options">
+                <button class="option-btn" data-value="Brown">Brown</button>
+                <button class="option-btn" data-value="Blue">Blue</button>
+                <button class="option-btn" data-value="Green">Green</button>
+            </div>
+            <div class="error-msg">Please select an eye colour.</div>
+        </div>
+
+        <!-- Accessories -->
+        <div class="category" id="cat-accessories" data-key="avatar_accessories">
+            <div class="category-label">Accessories</div>
+            <div class="options">
+                <button class="option-btn" data-value="None">None</button>
+                <button class="option-btn" data-value="Glasses">Glasses</button>
+                <button class="option-btn" data-value="Cap">Cap</button>
+            </div>
+            <div class="error-msg">Please select an accessory option.</div>
+        </div>
+
+        <button class="btn-start" id="btn-start">Start Journey</button>
+    </div>
+
+    <script>
+        // Handle option selection
+        document.querySelectorAll('.category').forEach(category => {
+            category.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Deselect siblings
+                    category.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                    // Select this one
+                    btn.classList.add('selected');
+                    // Clear error
+                    category.classList.remove('has-error');
+                });
+            });
+        });
+
+        // Start Journey button
+        document.getElementById('btn-start').addEventListener('click', () => {
+            const categories = document.querySelectorAll('.category');
+            let valid = true;
+
+            // Reset errors
+            categories.forEach(cat => cat.classList.remove('has-error'));
+
+            // Validate each category has a selection
+            categories.forEach(cat => {
+                const selected = cat.querySelector('.option-btn.selected');
+                if (!selected) {
+                    cat.classList.add('has-error');
+                    valid = false;
+                }
+            });
+
+            if (!valid) return;
+
+            // Save to localStorage
+            categories.forEach(cat => {
+                const key = cat.dataset.key;
+                const value = cat.querySelector('.option-btn.selected').dataset.value;
+                localStorage.setItem(key, value);
+            });
+
+            // Redirect to home
+            window.location.href = '/';
+        });
+
+        // Pre-select if values already exist in localStorage
+        document.querySelectorAll('.category').forEach(cat => {
+            const key = cat.dataset.key;
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                cat.querySelectorAll('.option-btn').forEach(btn => {
+                    if (btn.dataset.value === saved) {
+                        btn.classList.add('selected');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -266,9 +266,8 @@
             localStorage.setItem('participant_country', country);
             localStorage.setItem('participant_language', language);
 
-            // Show success
-            document.getElementById('success-msg').classList.add('visible');
-            document.getElementById('onboarding-form').style.display = 'none';
+            // Redirect to avatar setup
+            window.location.href = '/avatar-setup';
         });
 
         // Check if already onboarded — show info message

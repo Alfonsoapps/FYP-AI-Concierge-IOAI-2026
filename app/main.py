@@ -87,6 +87,12 @@ async def onboarding_page():
     return FileResponse("templates/onboarding.html")
 
 
+@app.get("/avatar-setup")
+async def avatar_setup_page():
+    """Avatar setup page - customize avatar appearance."""
+    return FileResponse("templates/avatar-setup.html")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

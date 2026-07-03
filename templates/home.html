@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IOAI 2027 Singapore - Participant Platform</title>
     <link rel="stylesheet" href="/static/css/navbar.css">
+    <script>
+        // Redirect to onboarding if not completed
+        (function() {
+            const name = localStorage.getItem('participant_name');
+            const role = localStorage.getItem('participant_role');
+            const country = localStorage.getItem('participant_country');
+            const language = localStorage.getItem('participant_language');
+            if (!name || !role || !country || !language) {
+                window.location.href = '/onboarding';
+            }
+        })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {

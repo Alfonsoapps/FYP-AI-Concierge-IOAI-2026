@@ -152,6 +152,23 @@
         .success-msg.visible {
             display: block;
         }
+
+        .info-msg {
+            text-align: center;
+            padding: 14px;
+            background: rgba(124, 58, 237, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: 10px;
+            color: #a78bfa;
+            font-size: 0.82rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .info-msg.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -159,6 +176,10 @@
         <div class="onboarding-header">
             <h1>Welcome to IOAI 2027</h1>
             <p>Tell us a bit about yourself to get started.</p>
+        </div>
+
+        <div class="info-msg" id="info-msg">
+            ℹ Your onboarding information has already been saved.
         </div>
 
         <form id="onboarding-form" novalidate>
@@ -248,6 +269,18 @@
             // Show success
             document.getElementById('success-msg').classList.add('visible');
             document.getElementById('onboarding-form').style.display = 'none';
+        });
+
+        // Check if already onboarded — show info message
+        (function() {
+            const name = localStorage.getItem('participant_name');
+            const role = localStorage.getItem('participant_role');
+            const country = localStorage.getItem('participant_country');
+            const language = localStorage.getItem('participant_language');
+            if (name && role && country && language) {
+                document.getElementById('info-msg').classList.add('visible');
+            }
+        })();
         });
     </script>
 </body>

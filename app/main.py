@@ -81,6 +81,12 @@ async def profile_page(request: Request):
     return templates.TemplateResponse("profile.html", {"request": request, "active_page": "profile"})
 
 
+@app.get("/onboarding")
+async def onboarding_page():
+    """Onboarding page - collect participant info."""
+    return FileResponse("templates/onboarding.html")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

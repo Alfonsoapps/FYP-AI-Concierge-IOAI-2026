@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - IOAI 2027</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0c0c1d;
+            color: #e8e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+            padding: 20px;
+        }
+
+        .onboarding-card {
+            width: 100%;
+            max-width: 440px;
+            background: rgba(14, 14, 32, 0.9);
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: 20px;
+            padding: 40px 32px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(124, 58, 237, 0.06);
+        }
+
+        .onboarding-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .onboarding-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .onboarding-header p {
+            font-size: 0.88rem;
+            color: #8080a0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #a0a0c0;
+            margin-bottom: 6px;
+            letter-spacing: 0.03em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: #e8e8f0;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: rgba(124, 58, 237, 0.5);
+        }
+
+        .form-group input::placeholder {
+            color: #505070;
+        }
+
+        .form-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238080a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+        }
+
+        .form-group select option {
+            background: #14142a;
+            color: #e8e8f0;
+        }
+
+        .form-group .error-msg {
+            font-size: 0.72rem;
+            color: #ef4444;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-group.has-error input,
+        .form-group.has-error select {
+            border-color: #ef4444;
+        }
+
+        .form-group.has-error .error-msg {
+            display: block;
+        }
+
+        .btn-continue {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-continue:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-continue:active {
+            transform: scale(0.98);
+        }
+
+        .success-msg {
+            text-align: center;
+            padding: 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+            color: #10b981;
+            font-size: 0.88rem;
+            font-weight: 500;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .success-msg.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="onboarding-card">
+        <div class="onboarding-header">
+            <h1>Welcome to IOAI 2027</h1>
+            <p>Tell us a bit about yourself to get started.</p>
+        </div>
+
+        <form id="onboarding-form" novalidate>
+            <div class="form-group" id="group-name">
+                <label for="field-name">Name</label>
+                <input type="text" id="field-name" placeholder="Enter your full name" autocomplete="name">
+                <div class="error-msg">Please enter your name.</div>
+            </div>
+
+            <div class="form-group" id="group-role">
+                <label for="field-role">Role</label>
+                <select id="field-role">
+                    <option value="" disabled selected>Select your role</option>
+                    <option value="Student Participant">Student Participant</option>
+                    <option value="Team Leader">Team Leader</option>
+                    <option value="Observer">Observer</option>
+                </select>
+                <div class="error-msg">Please select your role.</div>
+            </div>
+
+            <div class="form-group" id="group-country">
+                <label for="field-country">Country</label>
+                <input type="text" id="field-country" placeholder="Enter your country" autocomplete="country-name">
+                <div class="error-msg">Please enter your country.</div>
+            </div>
+
+            <div class="form-group" id="group-language">
+                <label for="field-language">Preferred Language</label>
+                <select id="field-language">
+                    <option value="" disabled selected>Select language</option>
+                    <option value="English">English</option>
+                    <option value="Chinese">Chinese</option>
+                    <option value="Malay">Malay</option>
+                    <option value="Tamil">Tamil</option>
+                </select>
+                <div class="error-msg">Please select your language.</div>
+            </div>
+
+            <button type="submit" class="btn-continue">Continue</button>
+        </form>
+
+        <div class="success-msg" id="success-msg">
+            ✓ Onboarding information saved successfully.
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('onboarding-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('field-name').value.trim();
+            const role = document.getElementById('field-role').value;
+            const country = document.getElementById('field-country').value.trim();
+            const language = document.getElementById('field-language').value;
+
+            // Reset errors
+            document.querySelectorAll('.form-group').forEach(g => g.classList.remove('has-error'));
+
+            // Validate
+            let valid = true;
+
+            if (!name) {
+                document.getElementById('group-name').classList.add('has-error');
+                valid = false;
+            }
+            if (!role) {
+                document.getElementById('group-role').classList.add('has-error');
+                valid = false;
+            }
+            if (!country) {
+                document.getElementById('group-country').classList.add('has-error');
+                valid = false;
+            }
+            if (!language) {
+                document.getElementById('group-language').classList.add('has-error');
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            // Save to localStorage
+            localStorage.setItem('participant_name', name);
+            localStorage.setItem('participant_role', role);
+            localStorage.setItem('participant_country', country);
+            localStorage.setItem('participant_language', language);
+
+            // Show success
+            document.getElementById('success-msg').classList.add('visible');
+            document.getElementById('onboarding-form').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

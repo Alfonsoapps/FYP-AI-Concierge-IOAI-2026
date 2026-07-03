@@ -1,6 +1,6 @@
 /* ============================================================
-   AI Concierge - Futuristic Side-by-Side Layout
-   Matches reference: dark navy, purple glow, immersive feel
+   Welcome Guide - Futuristic Side-by-Side Layout
+   Dark navy, purple glow, immersive feel
    ============================================================ */
 
 :root {
@@ -102,6 +102,45 @@ body {
     padding: 24px 24px 16px 28px;
     position: relative;
     z-index: 10;
+}
+
+/* --- Welcome Guide Info Card --- */
+.guide-info-card {
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    background: rgba(124, 58, 237, 0.06);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.guide-info-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #a78bfa;
+    margin-bottom: 6px;
+}
+
+.guide-info-desc {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #8080a0;
+    margin-bottom: 12px;
+}
+
+.guide-info-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.guide-feature {
+    font-size: 0.68rem;
+    padding: 4px 10px;
+    background: rgba(124, 58, 237, 0.1);
+    border: 1px solid rgba(124, 58, 237, 0.15);
+    border-radius: 20px;
+    color: #a0a0c0;
 }
 
 #chat-messages {

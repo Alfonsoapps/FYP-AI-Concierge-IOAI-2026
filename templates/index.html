@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Concierge - IOAI 2027 Singapore</title>
+    <title>Welcome Guide - IOAI 2027 Singapore</title>
 
     <!-- Live2D Dependencies -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
@@ -26,8 +26,8 @@
                 <rect x="19" y="8" width="2" height="8" rx="1" fill="currentColor" opacity="0.6"/>
             </svg>
             <div class="brand-text">
-                <span class="brand-name">AI CONCIERGE</span>
-                <span class="brand-sub">Your AI Assistant</span>
+                <span class="brand-name">WELCOME GUIDE</span>
+                <span class="brand-sub">Your AI Companion</span>
             </div>
         </div>
         <div id="listening-indicator">
@@ -44,12 +44,24 @@
 
         <!-- LEFT: Chat Panel -->
         <div id="chat-panel">
+            <!-- Welcome Guide Info Card -->
+            <div class="guide-info-card">
+                <div class="guide-info-title">Welcome Guide</div>
+                <div class="guide-info-desc">Your AI companion for navigating IOAI 2027. Ask questions about venues, schedules, activities and event information.</div>
+                <div class="guide-info-features">
+                    <span class="guide-feature">🎤 Voice Support</span>
+                    <span class="guide-feature">📍 Event Guidance</span>
+                    <span class="guide-feature">👥 Participant Assistance</span>
+                    <span class="guide-feature">⚡ Quick Answers</span>
+                </div>
+            </div>
+
             <div id="chat-messages">
                 <div class="msg bot">
                     <div class="msg-icon">✦</div>
                     <div class="msg-body">
-                        <div class="msg-label">AI CONCIERGE</div>
-                        <div class="msg-content">Welcome to IOAI 2027! I'm your friendly AI concierge, here to assist you with any questions or concerns you may have about attending this international event in Singapore.
+                        <div class="msg-label">WELCOME GUIDE</div>
+                        <div class="msg-content">Welcome to IOAI 2027! I'm your friendly guide, here to assist you with any questions about attending this international event in Singapore.
 
 What would you like to know first?</div>
                     </div>
@@ -130,7 +142,7 @@ What would you like to know first?</div>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('[App] Starting AI Concierge...');
+            console.log('[App] Starting Welcome Guide...');
             ChatManager.init();
             VoiceManager.init();
             await AvatarManager.init();

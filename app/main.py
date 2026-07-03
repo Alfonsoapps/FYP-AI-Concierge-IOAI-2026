@@ -1,8 +1,13 @@
 """
-AI Concierge - FastAPI Application Entry Point
+IOAI 2027 Participant Platform - FastAPI Application Entry Point
 
-This is the main entry point for the FastAPI application.
-It sets up routing, static file serving, and the frontend.
+Multi-page platform with AI Concierge as the guide feature.
+Routes:
+    /          → Home page
+    /guide     → AI Concierge (avatar, chat, STT, TTS)
+    /map       → Map (coming soon)
+    /schedule  → Schedule (coming soon)
+    /profile   → Profile (coming soon)
 """
 
 import logging
@@ -25,24 +30,51 @@ settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
-    description="AI Concierge backend powered by NVIDIA LLM",
+    description="IOAI 2027 Participant Platform with AI Concierge",
     version="1.0.0",
 )
 
-# Register routers
+# Register API routers (chat, TTS, RAG)
 app.include_router(chat.router)
 app.include_router(tts.router)
 app.include_router(rag.router)
 
 # Serve static assets (CSS, JS, Live2D models, images)
-# The "static" folder holds all frontend assets
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+# ============================================================
+# PAGE ROUTES
+# ============================================================
+
 @app.get("/")
-async def serve_frontend():
-    """Serve the frontend HTML page."""
+async def home_page():
+    """Home page - platform landing."""
+    return FileResponse("templates/home.html")
+
+
+@app.get("/guide")
+async def guide_page():
+    """AI Concierge guide page - full avatar experience."""
     return FileResponse("templates/index.html")
+
+
+@app.get("/map")
+async def map_page():
+    """Map page - coming soon."""
+    return FileResponse("templates/map.html")
+
+
+@app.get("/schedule")
+async def schedule_page():
+    """Schedule page - coming soon."""
+    return FileResponse("templates/schedule.html")
+
+
+@app.get("/profile")
+async def profile_page():
+    """Profile page - coming soon."""
+    return FileResponse("templates/profile.html")
 
 
 @app.get("/health")

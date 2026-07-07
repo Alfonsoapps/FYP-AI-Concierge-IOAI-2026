@@ -25,8 +25,10 @@
             background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25);
             border-radius: 14px; display: none; }
         .next-activity.visible { display: block; }
+        .next-activity.live { background: rgba(239,68,68,0.05); border-color: rgba(239,68,68,0.25); }
         .next-activity-label { font-size: 0.7rem; font-weight: 600; color: #10b981;
             text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+        .next-activity.live .next-activity-label { color: #ef4444; }
         .next-activity-title { font-size: 1.05rem; font-weight: 600; color: #e8e8f0; margin-bottom: 8px; }
         .next-activity-meta { display: flex; flex-direction: column; gap: 4px; }
         .next-activity-meta span { font-size: 0.8rem; color: #8080a0; }
@@ -148,20 +150,21 @@
 
     <script>
         // ============================================================
-        // EVENT DATA with role assignments
+        // EVENT DATA with role assignments and precise times
+        // Day offsets: Day 1 = today, Day 2 = tomorrow, etc.
         // ============================================================
         const allEvents = [
-            { id: 'e1', title: 'Opening Ceremony', day: '1', category: 'ceremony', time: '9:00 AM – 10:00 AM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Official opening of IOAI 2027 featuring keynote speakers, cultural performances, and introduction of participating teams.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
-            { id: 'e2', title: 'AI Workshop', day: '1', category: 'workshop', time: '2:00 PM – 4:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Hands-on workshop covering machine learning fundamentals and practical AI model development.', roles: ['Student Participant', 'Observer'] },
-            { id: 'e3', title: 'Team Networking Session', day: '1', category: 'social', time: '6:00 PM – 7:30 PM', venue: 'Singapore University of Technology and Design', venueSlug: 'sutd', desc: 'Informal networking for participants to meet teams from other countries.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
-            { id: 'e4', title: 'Team Leader Briefing', day: '1', category: 'ceremony', time: '11:00 AM – 12:00 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Mandatory briefing for all team leaders on competition rules and logistics.', roles: ['Team Leader'] },
-            { id: 'e5', title: 'Individual Competition Round 1', day: '2', category: 'competition', time: '9:00 AM – 12:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'First round of the individual AI competition with timed challenges.', roles: ['Student Participant'] },
-            { id: 'e6', title: 'AI Ethics Workshop', day: '2', category: 'workshop', time: '2:00 PM – 4:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Discussion on responsible AI development and ethical considerations.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
-            { id: 'e7', title: 'Observer Lab Tour', day: '2', category: 'talk', time: '10:00 AM – 12:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Guided tour of AI research labs for observers and team leaders.', roles: ['Observer', 'Team Leader'] },
-            { id: 'e8', title: 'Team Challenge', day: '3', category: 'competition', time: '9:00 AM – 1:00 PM', venue: 'Singapore University of Technology and Design', venueSlug: 'sutd', desc: 'Collaborative team-based AI challenge requiring diverse AI skills.', roles: ['Student Participant'] },
-            { id: 'e9', title: 'Industry Talk', day: '3', category: 'talk', time: '3:00 PM – 5:00 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Presentations from leading AI companies on trends and career opportunities.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
-            { id: 'e10', title: 'Closing Ceremony', day: '4', category: 'ceremony', time: '2:00 PM – 3:30 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Official closing with summary of achievements and future plans.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
-            { id: 'e11', title: 'Awards Presentation', day: '4', category: 'ceremony', time: '4:00 PM – 5:30 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Gold, silver, and bronze medals awarded to top performers.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e1', title: 'Opening Ceremony', day: '1', category: 'ceremony', time: '9:00 AM – 10:00 AM', startH: 9, startM: 0, endH: 10, endM: 0, venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Official opening of IOAI 2027 featuring keynote speakers, cultural performances, and introduction of participating teams.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e2', title: 'AI Workshop', day: '1', category: 'workshop', time: '2:00 PM – 4:00 PM', startH: 14, startM: 0, endH: 16, endM: 0, venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Hands-on workshop covering machine learning fundamentals and practical AI model development.', roles: ['Student Participant', 'Observer'] },
+            { id: 'e3', title: 'Team Networking Session', day: '1', category: 'social', time: '6:00 PM – 7:30 PM', startH: 18, startM: 0, endH: 19, endM: 30, venue: 'Singapore University of Technology and Design', venueSlug: 'sutd', desc: 'Informal networking for participants to meet teams from other countries.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e4', title: 'Team Leader Briefing', day: '1', category: 'ceremony', time: '11:00 AM – 12:00 PM', startH: 11, startM: 0, endH: 12, endM: 0, venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Mandatory briefing for all team leaders on competition rules and logistics.', roles: ['Team Leader'] },
+            { id: 'e5', title: 'Individual Competition Round 1', day: '2', category: 'competition', time: '9:00 AM – 12:00 PM', startH: 9, startM: 0, endH: 12, endM: 0, venue: 'National University of Singapore', venueSlug: 'nus', desc: 'First round of the individual AI competition with timed challenges.', roles: ['Student Participant'] },
+            { id: 'e6', title: 'AI Ethics Workshop', day: '2', category: 'workshop', time: '2:00 PM – 4:00 PM', startH: 14, startM: 0, endH: 16, endM: 0, venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Discussion on responsible AI development and ethical considerations.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e7', title: 'Observer Lab Tour', day: '2', category: 'talk', time: '10:00 AM – 12:00 PM', startH: 10, startM: 0, endH: 12, endM: 0, venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Guided tour of AI research labs for observers and team leaders.', roles: ['Observer', 'Team Leader'] },
+            { id: 'e8', title: 'Team Challenge', day: '3', category: 'competition', time: '9:00 AM – 1:00 PM', startH: 9, startM: 0, endH: 13, endM: 0, venue: 'Singapore University of Technology and Design', venueSlug: 'sutd', desc: 'Collaborative team-based AI challenge requiring diverse AI skills.', roles: ['Student Participant'] },
+            { id: 'e9', title: 'Industry Talk', day: '3', category: 'talk', time: '3:00 PM – 5:00 PM', startH: 15, startM: 0, endH: 17, endM: 0, venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Presentations from leading AI companies on trends and career opportunities.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e10', title: 'Closing Ceremony', day: '4', category: 'ceremony', time: '2:00 PM – 3:30 PM', startH: 14, startM: 0, endH: 15, endM: 30, venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Official closing with summary of achievements and future plans.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e11', title: 'Awards Presentation', day: '4', category: 'ceremony', time: '4:00 PM – 5:30 PM', startH: 16, startM: 0, endH: 17, endM: 30, venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Gold, silver, and bronze medals awarded to top performers.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
         ];
 
         // ============================================================
@@ -234,20 +237,87 @@
         function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
         // ============================================================
-        // NEXT ACTIVITY
+        // NEXT ACTIVITY (dynamic, based on current device time)
+        // Day 1 = today's date. Events are scheduled relative to today.
         // ============================================================
         function showNextActivity() {
             if (!participantRole) return;
 
-            // Find the first event for this role (simulated: Day 1 first event)
-            const myEvents = allEvents.filter(ev => ev.roles.includes(participantRole));
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            // Get events for this role, sorted by day then start time
+            const myEvents = allEvents
+                .filter(ev => ev.roles.includes(participantRole))
+                .sort((a, b) => {
+                    const dayDiff = parseInt(a.day) - parseInt(b.day);
+                    if (dayDiff !== 0) return dayDiff;
+                    return (a.startH * 60 + a.startM) - (b.startH * 60 + b.startM);
+                });
+
             if (myEvents.length === 0) return;
 
-            const next = myEvents[0];
-            document.getElementById('next-title').textContent = next.title;
-            document.getElementById('next-time').textContent = '🕐 ' + next.time;
-            document.getElementById('next-venue').textContent = '📍 ' + next.venue;
-            document.getElementById('next-countdown').textContent = 'Starts in 45 minutes';
+            // Calculate absolute start/end times for each event
+            // Day 1 = today, Day 2 = tomorrow, etc.
+            let liveEvent = null;
+            let nextEvent = null;
+
+            for (const ev of myEvents) {
+                const dayOffset = parseInt(ev.day) - 1;
+                const evStart = new Date(today.getTime() + dayOffset * 86400000);
+                evStart.setHours(ev.startH, ev.startM, 0, 0);
+                const evEnd = new Date(today.getTime() + dayOffset * 86400000);
+                evEnd.setHours(ev.endH, ev.endM, 0, 0);
+
+                // Check if live now
+                if (now >= evStart && now <= evEnd) {
+                    liveEvent = { ...ev, start: evStart, end: evEnd };
+                    break;
+                }
+
+                // Check if upcoming
+                if (now < evStart && !nextEvent) {
+                    nextEvent = { ...ev, start: evStart, end: evEnd };
+                }
+            }
+
+            const target = liveEvent || nextEvent;
+            if (!target) return;
+
+            // Populate card
+            document.getElementById('next-title').textContent = target.title;
+            document.getElementById('next-time').textContent = '🕐 ' + target.time;
+            document.getElementById('next-venue').textContent = '📍 ' + target.venue;
+
+            // Calculate countdown
+            let countdownText;
+            if (liveEvent) {
+                countdownText = '🔴 LIVE NOW';
+                document.getElementById('next-countdown').style.background = 'rgba(239,68,68,0.15)';
+                document.getElementById('next-countdown').style.color = '#ef4444';
+                document.getElementById('next-activity').classList.add('live');
+                document.getElementById('next-activity').querySelector('.next-activity-label').textContent = 'Happening Now';
+            } else {
+                const diffMs = target.start - now;
+                const diffMin = Math.floor(diffMs / 60000);
+
+                if (diffMin < 1) {
+                    countdownText = 'Starting now';
+                } else if (diffMin < 60) {
+                    countdownText = `Starts in ${diffMin} minute${diffMin > 1 ? 's' : ''}`;
+                } else if (diffMin < 1440) {
+                    const hours = Math.floor(diffMin / 60);
+                    const mins = diffMin % 60;
+                    countdownText = mins > 0
+                        ? `Starts in ${hours} hour${hours > 1 ? 's' : ''} ${mins} min`
+                        : `Starts in ${hours} hour${hours > 1 ? 's' : ''}`;
+                } else {
+                    const days = Math.floor(diffMin / 1440);
+                    countdownText = days === 1 ? 'Starts tomorrow' : `Starts in ${days} days`;
+                }
+            }
+
+            document.getElementById('next-countdown').textContent = countdownText;
             document.getElementById('next-activity').classList.add('visible');
         }
 

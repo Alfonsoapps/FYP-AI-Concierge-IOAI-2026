@@ -192,7 +192,7 @@
 
     <div class="venues-list">
         <!-- Venue 1: Marina Bay Sands -->
-        <div class="venue-card">
+        <div class="venue-card" data-venue="marina-bay-sands">
             <span class="venue-type">Main Event Venue</span>
             <div class="venue-name">Marina Bay Sands</div>
             <div class="venue-desc">Host venue for major ceremonies and networking events.</div>
@@ -223,7 +223,7 @@
         </div>
 
         <!-- Venue 2: NUS -->
-        <div class="venue-card">
+        <div class="venue-card" data-venue="nus">
             <span class="venue-type">Workshop Venue</span>
             <div class="venue-name">National University of Singapore</div>
             <div class="venue-desc">Location for workshops and educational sessions.</div>
@@ -254,7 +254,7 @@
         </div>
 
         <!-- Venue 3: SUTD -->
-        <div class="venue-card">
+        <div class="venue-card" data-venue="sutd">
             <span class="venue-type">Competition Venue</span>
             <div class="venue-name">Singapore University of Technology and Design</div>
             <div class="venue-desc">Location for competition activities and team challenges.</div>
@@ -289,14 +289,16 @@
 
     <script>
         function toggleDetails(btn) {
-            const details = btn.nextElementSibling;
+            const card = btn.closest('.venue-card');
+            const details = card.querySelector('.venue-details');
             const isOpen = details.classList.contains('open');
 
             // Close all other open details
             document.querySelectorAll('.venue-details.open').forEach(d => {
                 d.classList.remove('open');
-                d.previousElementSibling.classList.remove('expanded');
-                d.previousElementSibling.textContent = 'View Venue';
+                const b = d.closest('.venue-card').querySelector('.venue-btn');
+                b.classList.remove('expanded');
+                b.textContent = 'View Venue';
             });
 
             // Toggle this one
@@ -306,6 +308,23 @@
                 btn.textContent = 'Hide Details';
             }
         }
+
+        // Auto-expand venue from URL query parameter
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const venueSlug = params.get('venue');
+            if (venueSlug) {
+                const card = document.querySelector(`.venue-card[data-venue="${venueSlug}"]`);
+                if (card) {
+                    const btn = card.querySelector('.venue-btn');
+                    if (btn) {
+                        toggleDetails(btn);
+                        // Scroll to the card
+                        setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                    }
+                }
+            }
+        })();
     </script>
 </body>
 </html>

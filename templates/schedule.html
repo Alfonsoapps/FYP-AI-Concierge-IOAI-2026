@@ -12,16 +12,158 @@
             background: #0c0c1d;
             color: #e8e8f0;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            padding: 32px 24px 100px;
+        }
+
+        .page-header {
+            max-width: 600px;
+            margin: 0 auto 28px;
+        }
+
+        .page-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            font-size: 0.88rem;
+            color: #8080a0;
+        }
+
+        .section-title {
+            max-width: 600px;
+            margin: 0 auto 16px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #a0a0c0;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .events-list {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .event-card {
+            background: rgba(14, 14, 32, 0.9);
+            border: 1px solid rgba(124, 58, 237, 0.15);
+            border-radius: 14px;
+            padding: 18px 20px;
+            transition: border-color 0.2s ease;
+        }
+
+        .event-card:hover {
+            border-color: rgba(124, 58, 237, 0.35);
+        }
+
+        .event-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e8e8f0;
+            margin-bottom: 10px;
+        }
+
+        .event-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .event-detail {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding-bottom: 80px;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #8080a0;
         }
-        h1 { font-size: 1.8rem; color: #8080a0; }
+
+        .event-detail svg {
+            width: 14px;
+            height: 14px;
+            stroke: #7c3aed;
+            flex-shrink: 0;
+        }
+
+        .event-day-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 3px 9px;
+            background: rgba(124, 58, 237, 0.12);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 20px;
+            color: #a78bfa;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
-    <h1>Schedule Page - Coming Soon</h1>
+    <div class="page-header">
+        <h1>Schedule</h1>
+        <p>Stay updated with upcoming IOAI events and activities.</p>
+    </div>
+
+    <div class="section-title">Today's Events</div>
+
+    <div class="events-list">
+        <!-- Event 1 -->
+        <div class="event-card">
+            <span class="event-day-badge">Day 1</span>
+            <div class="event-title">Opening Ceremony</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>9:00 AM – 10:00 AM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Marina Bay Sands</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event 2 -->
+        <div class="event-card">
+            <span class="event-day-badge">Day 1</span>
+            <div class="event-title">AI Workshop</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>2:00 PM – 4:00 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>National University of Singapore</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event 3 -->
+        <div class="event-card">
+            <span class="event-day-badge">Day 1</span>
+            <div class="event-title">Team Networking Session</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>6:00 PM – 7:30 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Singapore University of Technology and Design</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {% include 'partials/navbar.html' %}
 </body>

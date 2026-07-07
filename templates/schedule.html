@@ -9,13 +9,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: #0c0c1d;
-            color: #e8e8f0;
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            padding: 32px 24px 100px;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased; padding: 32px 24px 100px;
         }
-
         .page-header { max-width: 600px; margin: 0 auto 20px; }
         .page-header h1 {
             font-size: 1.6rem; font-weight: 700; margin-bottom: 8px;
@@ -24,37 +20,50 @@
         }
         .page-header p { font-size: 0.88rem; color: #8080a0; }
 
+        /* Next Activity Card */
+        .next-activity { max-width: 600px; margin: 0 auto 22px; padding: 18px 20px;
+            background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25);
+            border-radius: 14px; display: none; }
+        .next-activity.visible { display: block; }
+        .next-activity-label { font-size: 0.7rem; font-weight: 600; color: #10b981;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+        .next-activity-title { font-size: 1.05rem; font-weight: 600; color: #e8e8f0; margin-bottom: 8px; }
+        .next-activity-meta { display: flex; flex-direction: column; gap: 4px; }
+        .next-activity-meta span { font-size: 0.8rem; color: #8080a0; }
+        .next-activity-countdown { margin-top: 10px; font-size: 0.78rem; font-weight: 600;
+            color: #10b981; padding: 5px 12px; background: rgba(16,185,129,0.1);
+            border-radius: 20px; display: inline-block; }
+
+        /* View Toggle */
+        .view-toggle { max-width: 600px; margin: 0 auto 16px; display: flex; gap: 8px; }
+        .view-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03); color: #8080a0; font-size: 0.78rem;
+            font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
+        .view-btn:hover { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #a78bfa; }
+        .view-btn.active { background: rgba(124,58,237,0.15); border-color: #7c3aed; color: #e8e8f0; }
+
         /* Day Selector */
         .day-selector { max-width: 600px; margin: 0 auto 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-        .day-btn {
-            padding: 9px 18px; border-radius: 10px; border: 1px solid rgba(124,58,237,0.2);
+        .day-btn { padding: 9px 18px; border-radius: 10px; border: 1px solid rgba(124,58,237,0.2);
             background: rgba(124,58,237,0.05); color: #8080a0; font-size: 0.82rem;
-            font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s ease;
-        }
+            font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
         .day-btn:hover { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.4); color: #a78bfa; }
         .day-btn.active { background: #7c3aed; border-color: #7c3aed; color: white; }
 
         /* Category Filters */
         .filters { max-width: 600px; margin: 0 auto 24px; display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-btn {
-            padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);
+        .filter-btn { padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);
             background: rgba(255,255,255,0.03); color: #8080a0; font-size: 0.78rem;
-            font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s ease;
-        }
+            font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
         .filter-btn:hover { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #a78bfa; }
         .filter-btn.active { background: rgba(124,58,237,0.15); border-color: #7c3aed; color: #e8e8f0; }
 
-        .section-title {
-            max-width: 600px; margin: 0 auto 16px; font-size: 0.82rem; font-weight: 600;
-            color: #a0a0c0; letter-spacing: 0.04em; text-transform: uppercase;
-        }
-
+        .section-title { max-width: 600px; margin: 0 auto 16px; font-size: 0.82rem; font-weight: 600;
+            color: #a0a0c0; letter-spacing: 0.04em; text-transform: uppercase; }
         .events-list { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
 
-        .event-card {
-            background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
-            border-radius: 14px; padding: 18px 20px; transition: border-color 0.2s ease; cursor: pointer;
-        }
+        .event-card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
+            border-radius: 14px; padding: 18px 20px; transition: border-color 0.2s ease; cursor: pointer; }
         .event-card:hover { border-color: rgba(124,58,237,0.35); }
         .event-card.hidden { display: none; }
         .event-card.expanded { border-color: rgba(124,58,237,0.4); }
@@ -63,55 +72,31 @@
         .event-summary { display: flex; flex-direction: column; gap: 6px; }
         .event-detail { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #8080a0; }
         .event-detail svg { width: 14px; height: 14px; stroke: #7c3aed; flex-shrink: 0; }
+        .event-badges { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+        .event-day-badge { display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 3px 9px;
+            background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2); border-radius: 20px; color: #a78bfa; }
+        .event-cat-badge { display: inline-block; font-size: 0.68rem; font-weight: 500; padding: 3px 9px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; color: #8080a0; }
 
-        .event-badges { display: flex; gap: 6px; margin-bottom: 8px; }
-        .event-day-badge {
-            display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 3px 9px;
-            background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2);
-            border-radius: 20px; color: #a78bfa;
-        }
-        .event-cat-badge {
-            display: inline-block; font-size: 0.68rem; font-weight: 500; padding: 3px 9px;
-            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 20px; color: #8080a0;
-        }
-
-        /* Expandable Details */
-        .event-expanded {
-            max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin-top 0.3s ease; margin-top: 0;
-        }
+        .event-expanded { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin-top 0.3s ease; margin-top: 0; }
         .event-expanded.open { max-height: 400px; margin-top: 14px; }
-
         .event-expanded-inner { padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06); }
-
         .detail-section { margin-bottom: 12px; }
         .detail-section:last-child { margin-bottom: 0; }
-        .detail-label {
-            font-size: 0.72rem; font-weight: 600; color: #a0a0c0;
-            letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px;
-        }
+        .detail-label { font-size: 0.72rem; font-weight: 600; color: #a0a0c0; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
         .detail-value { font-size: 0.82rem; color: #8080a0; line-height: 1.5; }
-
-        .status-badge {
-            display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 3px 10px;
-            border-radius: 20px;
-        }
+        .status-badge { display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
         .status-badge.upcoming { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
-        .status-badge.completed { background: rgba(128,128,160,0.1); border: 1px solid rgba(128,128,160,0.2); color: #8080a0; }
 
-        .venue-link {
-            display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
+        .venue-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
             padding: 7px 14px; border-radius: 8px; border: 1px solid rgba(124,58,237,0.3);
             background: rgba(124,58,237,0.08); color: #a78bfa; font-size: 0.78rem;
-            font-weight: 500; text-decoration: none; transition: all 0.2s ease; cursor: pointer;
-        }
+            font-weight: 500; text-decoration: none; transition: all 0.2s ease; cursor: pointer; }
         .venue-link:hover { background: rgba(124,58,237,0.18); border-color: #7c3aed; color: #e8e8f0; }
         .venue-link svg { width: 12px; height: 12px; stroke: currentColor; }
 
-        .no-events {
-            max-width: 600px; margin: 0 auto; text-align: center; padding: 32px 20px;
-            color: #505070; font-size: 0.88rem; display: none;
-        }
+        .no-events { max-width: 600px; margin: 0 auto; text-align: center; padding: 32px 20px;
+            color: #505070; font-size: 0.88rem; display: none; }
         .no-events.visible { display: block; }
     </style>
 </head>
@@ -119,6 +104,23 @@
     <div class="page-header">
         <h1>Schedule</h1>
         <p>Stay updated with upcoming IOAI events and activities.</p>
+    </div>
+
+    <!-- Your Next Activity -->
+    <div class="next-activity" id="next-activity">
+        <div class="next-activity-label">Your Next Activity</div>
+        <div class="next-activity-title" id="next-title"></div>
+        <div class="next-activity-meta">
+            <span id="next-time"></span>
+            <span id="next-venue"></span>
+        </div>
+        <div class="next-activity-countdown" id="next-countdown"></div>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="view-toggle">
+        <button class="view-btn active" id="view-all">All Events</button>
+        <button class="view-btn" id="view-my">My Schedule</button>
     </div>
 
     <div class="day-selector">
@@ -139,395 +141,124 @@
 
     <div class="section-title">Events</div>
 
-    <div class="events-list" id="events-list">
-
-        <!-- Day 1: Opening Ceremony -->
-        <div class="event-card" data-day="1" data-category="ceremony" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 1</span>
-                <span class="event-cat-badge">Ceremony</span>
-            </div>
-            <div class="event-title">Opening Ceremony</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>9:00 AM – 10:00 AM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Marina Bay Sands</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Official opening of IOAI 2027 featuring keynote speakers, cultural performances, and introduction of participating teams from around the world.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=marina-bay-sands" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 1: AI Workshop -->
-        <div class="event-card" data-day="1" data-category="workshop" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 1</span>
-                <span class="event-cat-badge">Workshop</span>
-            </div>
-            <div class="event-title">AI Workshop</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>2:00 PM – 4:00 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>National University of Singapore</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Hands-on workshop covering machine learning fundamentals, neural network architectures, and practical AI model development techniques.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=nus" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 1: Team Networking -->
-        <div class="event-card" data-day="1" data-category="social" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 1</span>
-                <span class="event-cat-badge">Social</span>
-            </div>
-            <div class="event-title">Team Networking Session</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>6:00 PM – 7:30 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Singapore University of Technology and Design</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Informal networking session for participants to meet teams from other countries, share experiences, and build connections.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=sutd" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 2: Competition Round 1 -->
-        <div class="event-card" data-day="2" data-category="competition" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 2</span>
-                <span class="event-cat-badge">Competition</span>
-            </div>
-            <div class="event-title">Individual Competition Round 1</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>9:00 AM – 12:00 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>National University of Singapore</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">First round of the individual AI competition. Participants solve machine learning challenges independently within a timed environment.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=nus" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 2: AI Ethics Workshop -->
-        <div class="event-card" data-day="2" data-category="workshop" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 2</span>
-                <span class="event-cat-badge">Workshop</span>
-            </div>
-            <div class="event-title">AI Ethics Workshop</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>2:00 PM – 4:00 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>National University of Singapore</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Discussion on responsible AI development, bias detection, fairness in algorithms, and ethical considerations in deploying AI systems.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=nus" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 3: Team Challenge -->
-        <div class="event-card" data-day="3" data-category="competition" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 3</span>
-                <span class="event-cat-badge">Competition</span>
-            </div>
-            <div class="event-title">Team Challenge</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>9:00 AM – 1:00 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Singapore University of Technology and Design</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Collaborative team-based AI challenge where national teams work together to solve complex problems requiring diverse AI skills.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=sutd" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 3: Industry Talk -->
-        <div class="event-card" data-day="3" data-category="talk" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 3</span>
-                <span class="event-cat-badge">Talk</span>
-            </div>
-            <div class="event-title">Industry Talk</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>3:00 PM – 5:00 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Marina Bay Sands</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Presentations from leading AI companies on industry trends, career opportunities, and real-world applications of artificial intelligence.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=marina-bay-sands" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 4: Closing Ceremony -->
-        <div class="event-card" data-day="4" data-category="ceremony" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 4</span>
-                <span class="event-cat-badge">Ceremony</span>
-            </div>
-            <div class="event-title">Closing Ceremony</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>2:00 PM – 3:30 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Marina Bay Sands</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Official closing of IOAI 2027 with summary of achievements, acknowledgments, and announcement of future plans.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=marina-bay-sands" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Day 4: Awards Presentation -->
-        <div class="event-card" data-day="4" data-category="ceremony" onclick="toggleEvent(this)">
-            <div class="event-badges">
-                <span class="event-day-badge">Day 4</span>
-                <span class="event-cat-badge">Ceremony</span>
-            </div>
-            <div class="event-title">Awards Presentation</div>
-            <div class="event-summary">
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    <span>4:00 PM – 5:30 PM</span>
-                </div>
-                <div class="event-detail">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Marina Bay Sands</span>
-                </div>
-            </div>
-            <div class="event-expanded">
-                <div class="event-expanded-inner">
-                    <div class="detail-section">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">Gold, silver, and bronze medals awarded to top-performing individuals and teams. Special recognition awards for outstanding contributions.</div>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Status</div>
-                        <span class="status-badge upcoming">Upcoming</span>
-                    </div>
-                    <div class="detail-section">
-                        <div class="detail-label">Venue</div>
-                        <a class="venue-link" href="/map?venue=marina-bay-sands" onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            View Venue
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
+    <div class="events-list" id="events-list"></div>
     <div class="no-events" id="no-events">No events match the selected filters.</div>
 
     {% include 'partials/navbar.html' %}
 
     <script>
-        const dayBtns = document.querySelectorAll('.day-btn');
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        const eventCards = document.querySelectorAll('.event-card');
-        const noEvents = document.getElementById('no-events');
+        // ============================================================
+        // EVENT DATA with role assignments
+        // ============================================================
+        const allEvents = [
+            { id: 'e1', title: 'Opening Ceremony', day: '1', category: 'ceremony', time: '9:00 AM – 10:00 AM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Official opening of IOAI 2027 featuring keynote speakers, cultural performances, and introduction of participating teams.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e2', title: 'AI Workshop', day: '1', category: 'workshop', time: '2:00 PM – 4:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Hands-on workshop covering machine learning fundamentals and practical AI model development.', roles: ['Student Participant', 'Observer'] },
+            { id: 'e3', title: 'Team Networking Session', day: '1', category: 'social', time: '6:00 PM – 7:30 PM', venue: 'Singapore University of Technology and Design', venueSlug: 'sutd', desc: 'Informal networking for participants to meet teams from other countries.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e4', title: 'Team Leader Briefing', day: '1', category: 'ceremony', time: '11:00 AM – 12:00 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Mandatory briefing for all team leaders on competition rules and logistics.', roles: ['Team Leader'] },
+            { id: 'e5', title: 'Individual Competition Round 1', day: '2', category: 'competition', time: '9:00 AM – 12:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'First round of the individual AI competition with timed challenges.', roles: ['Student Participant'] },
+            { id: 'e6', title: 'AI Ethics Workshop', day: '2', category: 'workshop', time: '2:00 PM – 4:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Discussion on responsible AI development and ethical considerations.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e7', title: 'Observer Lab Tour', day: '2', category: 'talk', time: '10:00 AM – 12:00 PM', venue: 'National University of Singapore', venueSlug: 'nus', desc: 'Guided tour of AI research labs for observers and team leaders.', roles: ['Observer', 'Team Leader'] },
+            { id: 'e8', title: 'Team Challenge', day: '3', category: 'competition', time: '9:00 AM – 1:00 PM', venue: 'Singapore University of Technology and Design', venueSlug: 'sutd', desc: 'Collaborative team-based AI challenge requiring diverse AI skills.', roles: ['Student Participant'] },
+            { id: 'e9', title: 'Industry Talk', day: '3', category: 'talk', time: '3:00 PM – 5:00 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Presentations from leading AI companies on trends and career opportunities.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e10', title: 'Closing Ceremony', day: '4', category: 'ceremony', time: '2:00 PM – 3:30 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Official closing with summary of achievements and future plans.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+            { id: 'e11', title: 'Awards Presentation', day: '4', category: 'ceremony', time: '4:00 PM – 5:30 PM', venue: 'Marina Bay Sands', venueSlug: 'marina-bay-sands', desc: 'Gold, silver, and bronze medals awarded to top performers.', roles: ['Student Participant', 'Team Leader', 'Observer'] },
+        ];
 
+        // ============================================================
+        // STATE
+        // ============================================================
         let activeDay = '1';
         let activeCategory = 'all';
+        let viewMode = 'all'; // 'all' or 'my'
+        const participantRole = localStorage.getItem('participant_role') || '';
 
-        function applyFilters() {
+        // ============================================================
+        // RENDER
+        // ============================================================
+        function renderEvents() {
+            const list = document.getElementById('events-list');
+            list.innerHTML = '';
             let visibleCount = 0;
-            // Collapse all expanded cards when filters change
-            collapseAll();
 
-            eventCards.forEach(card => {
-                const matchDay = card.dataset.day === activeDay;
-                const matchCat = activeCategory === 'all' || card.dataset.category === activeCategory;
-                if (matchDay && matchCat) {
-                    card.classList.remove('hidden');
-                    visibleCount++;
-                } else {
-                    card.classList.add('hidden');
-                }
+            const filtered = allEvents.filter(ev => {
+                if (ev.day !== activeDay) return false;
+                if (activeCategory !== 'all' && ev.category !== activeCategory) return false;
+                if (viewMode === 'my' && participantRole && !ev.roles.includes(participantRole)) return false;
+                return true;
             });
-            noEvents.classList.toggle('visible', visibleCount === 0);
+
+            filtered.forEach(ev => {
+                visibleCount++;
+                list.innerHTML += `
+                <div class="event-card" onclick="toggleEvent(this)">
+                    <div class="event-badges">
+                        <span class="event-day-badge">Day ${ev.day}</span>
+                        <span class="event-cat-badge">${capitalize(ev.category)}</span>
+                    </div>
+                    <div class="event-title">${ev.title}</div>
+                    <div class="event-summary">
+                        <div class="event-detail">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                            <span>${ev.time}</span>
+                        </div>
+                        <div class="event-detail">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>${ev.venue}</span>
+                        </div>
+                    </div>
+                    <div class="event-expanded">
+                        <div class="event-expanded-inner">
+                            <div class="detail-section">
+                                <div class="detail-label">Description</div>
+                                <div class="detail-value">${ev.desc}</div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Status</div>
+                                <span class="status-badge upcoming">Upcoming</span>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Venue</div>
+                                <a class="venue-link" href="/map?venue=${ev.venueSlug}" onclick="event.stopPropagation()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    View Venue
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('no-events').classList.toggle('visible', visibleCount === 0);
         }
 
+        function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+        // ============================================================
+        // NEXT ACTIVITY
+        // ============================================================
+        function showNextActivity() {
+            if (!participantRole) return;
+
+            // Find the first event for this role (simulated: Day 1 first event)
+            const myEvents = allEvents.filter(ev => ev.roles.includes(participantRole));
+            if (myEvents.length === 0) return;
+
+            const next = myEvents[0];
+            document.getElementById('next-title').textContent = next.title;
+            document.getElementById('next-time').textContent = '🕐 ' + next.time;
+            document.getElementById('next-venue').textContent = '📍 ' + next.venue;
+            document.getElementById('next-countdown').textContent = 'Starts in 45 minutes';
+            document.getElementById('next-activity').classList.add('visible');
+        }
+
+        // ============================================================
+        // INTERACTIONS
+        // ============================================================
         function toggleEvent(card) {
             const details = card.querySelector('.event-expanded');
             const isOpen = details.classList.contains('open');
-
-            // Collapse all others
             collapseAll();
-
-            // Toggle this one
-            if (!isOpen) {
-                details.classList.add('open');
-                card.classList.add('expanded');
-            }
+            if (!isOpen) { details.classList.add('open'); card.classList.add('expanded'); }
         }
 
         function collapseAll() {
@@ -535,25 +266,44 @@
             document.querySelectorAll('.event-card.expanded').forEach(c => c.classList.remove('expanded'));
         }
 
-        dayBtns.forEach(btn => {
+        // Day buttons
+        document.querySelectorAll('.day-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 activeDay = btn.dataset.day;
-                dayBtns.forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                applyFilters();
+                renderEvents();
             });
         });
 
-        filterBtns.forEach(btn => {
+        // Category filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 activeCategory = btn.dataset.category;
-                filterBtns.forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                applyFilters();
+                renderEvents();
             });
         });
 
-        applyFilters();
+        // View toggle
+        document.getElementById('view-all').addEventListener('click', () => {
+            viewMode = 'all';
+            document.getElementById('view-all').classList.add('active');
+            document.getElementById('view-my').classList.remove('active');
+            renderEvents();
+        });
+
+        document.getElementById('view-my').addEventListener('click', () => {
+            viewMode = 'my';
+            document.getElementById('view-my').classList.add('active');
+            document.getElementById('view-all').classList.remove('active');
+            renderEvents();
+        });
+
+        // Init
+        showNextActivity();
+        renderEvents();
     </script>
 </body>
 </html>

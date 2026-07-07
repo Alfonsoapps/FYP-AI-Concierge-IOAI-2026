@@ -94,9 +94,8 @@
         }
         .map-btn:hover { background: rgba(16,185,129,0.18); border-color: #10b981; color: #e8e8f0; }
 
-        /* Expandable Details */
         .venue-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin-top 0.3s ease; margin-top: 0; }
-        .venue-details.open { max-height: 300px; margin-top: 16px; }
+        .venue-details.open { max-height: 500px; margin-top: 16px; }
         .venue-details-inner { padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
         .detail-section { margin-bottom: 14px; }
         .detail-section:last-child { margin-bottom: 0; }
@@ -104,6 +103,15 @@
         .detail-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
         .detail-list li { font-size: 0.82rem; color: #8080a0; padding-left: 14px; position: relative; }
         .detail-list li::before { content: '•'; position: absolute; left: 0; color: #7c3aed; }
+
+        .transport-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .transport-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px; padding: 10px 12px; }
+        .transport-item-label { font-size: 0.65rem; font-weight: 600; color: #a0a0c0;
+            text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+        .transport-item-value { font-size: 0.78rem; color: #e8e8f0; line-height: 1.4; }
+
+        @media (max-width: 500px) { .transport-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -148,6 +156,23 @@
                             <li>Rest Areas</li>
                         </ul>
                     </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Getting There</div>
+                        <div class="transport-grid">
+                            <div class="transport-item">
+                                <div class="transport-item-label">MRT</div>
+                                <div class="transport-item-value">Bayfront (CE1/DT16)</div>
+                            </div>
+                            <div class="transport-item">
+                                <div class="transport-item-label">Bus</div>
+                                <div class="transport-item-value">97, 106, 133, 502</div>
+                            </div>
+                            <div class="transport-item">
+                                <div class="transport-item-label">Walk</div>
+                                <div class="transport-item-value">3 min from MRT</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -180,6 +205,23 @@
                             <li>Cafeterias</li>
                         </ul>
                     </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Getting There</div>
+                        <div class="transport-grid">
+                            <div class="transport-item">
+                                <div class="transport-item-label">MRT</div>
+                                <div class="transport-item-value">Kent Ridge (CC24)</div>
+                            </div>
+                            <div class="transport-item">
+                                <div class="transport-item-label">Bus</div>
+                                <div class="transport-item-value">95, 96, 151</div>
+                            </div>
+                            <div class="transport-item">
+                                <div class="transport-item-label">Walk</div>
+                                <div class="transport-item-value">10 min from MRT</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -211,6 +253,23 @@
                             <li>Breakout Rooms</li>
                             <li>Dining Area</li>
                         </ul>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Getting There</div>
+                        <div class="transport-grid">
+                            <div class="transport-item">
+                                <div class="transport-item-label">MRT</div>
+                                <div class="transport-item-value">Upper Changi (DT34)</div>
+                            </div>
+                            <div class="transport-item">
+                                <div class="transport-item-label">Bus</div>
+                                <div class="transport-item-value">2, 5, 24, 34</div>
+                            </div>
+                            <div class="transport-item">
+                                <div class="transport-item-label">Walk</div>
+                                <div class="transport-item-value">5 min from MRT</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -36,7 +36,41 @@
             color: #8080a0;
         }
 
-        /* Filters */
+        /* Day Selector */
+        .day-selector {
+            max-width: 600px;
+            margin: 0 auto 16px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .day-btn {
+            padding: 9px 18px;
+            border-radius: 10px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            background: rgba(124, 58, 237, 0.05);
+            color: #8080a0;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .day-btn:hover {
+            background: rgba(124, 58, 237, 0.12);
+            border-color: rgba(124, 58, 237, 0.4);
+            color: #a78bfa;
+        }
+
+        .day-btn.active {
+            background: #7c3aed;
+            border-color: #7c3aed;
+            color: white;
+        }
+
+        /* Category Filters */
         .filters {
             max-width: 600px;
             margin: 0 auto 24px;
@@ -159,6 +193,20 @@
             border-radius: 20px;
             color: #8080a0;
         }
+
+        .no-events {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 32px 20px;
+            color: #505070;
+            font-size: 0.88rem;
+            display: none;
+        }
+
+        .no-events.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -167,19 +215,29 @@
         <p>Stay updated with upcoming IOAI events and activities.</p>
     </div>
 
-    <!-- Filters -->
+    <!-- Day Selector -->
+    <div class="day-selector">
+        <button class="day-btn active" data-day="1">Day 1</button>
+        <button class="day-btn" data-day="2">Day 2</button>
+        <button class="day-btn" data-day="3">Day 3</button>
+        <button class="day-btn" data-day="4">Day 4</button>
+    </div>
+
+    <!-- Category Filters -->
     <div class="filters">
         <button class="filter-btn active" data-category="all">All</button>
         <button class="filter-btn" data-category="ceremony">Ceremony</button>
         <button class="filter-btn" data-category="workshop">Workshop</button>
         <button class="filter-btn" data-category="social">Social</button>
+        <button class="filter-btn" data-category="competition">Competition</button>
+        <button class="filter-btn" data-category="talk">Talk</button>
     </div>
 
-    <div class="section-title">Today's Events</div>
+    <div class="section-title">Events</div>
 
     <div class="events-list">
-        <!-- Event 1 -->
-        <div class="event-card" data-category="ceremony">
+        <!-- Day 1 Events -->
+        <div class="event-card" data-day="1" data-category="ceremony">
             <div class="event-badges">
                 <span class="event-day-badge">Day 1</span>
                 <span class="event-cat-badge">Ceremony</span>
@@ -197,8 +255,7 @@
             </div>
         </div>
 
-        <!-- Event 2 -->
-        <div class="event-card" data-category="workshop">
+        <div class="event-card" data-day="1" data-category="workshop">
             <div class="event-badges">
                 <span class="event-day-badge">Day 1</span>
                 <span class="event-cat-badge">Workshop</span>
@@ -216,8 +273,7 @@
             </div>
         </div>
 
-        <!-- Event 3 -->
-        <div class="event-card" data-category="social">
+        <div class="event-card" data-day="1" data-category="social">
             <div class="event-badges">
                 <span class="event-day-badge">Day 1</span>
                 <span class="event-cat-badge">Social</span>
@@ -234,33 +290,174 @@
                 </div>
             </div>
         </div>
+
+        <!-- Day 2 Events -->
+        <div class="event-card" data-day="2" data-category="competition">
+            <div class="event-badges">
+                <span class="event-day-badge">Day 2</span>
+                <span class="event-cat-badge">Competition</span>
+            </div>
+            <div class="event-title">Individual Competition Round 1</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>9:00 AM – 12:00 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>National University of Singapore</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="event-card" data-day="2" data-category="workshop">
+            <div class="event-badges">
+                <span class="event-day-badge">Day 2</span>
+                <span class="event-cat-badge">Workshop</span>
+            </div>
+            <div class="event-title">AI Ethics Workshop</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>2:00 PM – 4:00 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>National University of Singapore</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day 3 Events -->
+        <div class="event-card" data-day="3" data-category="competition">
+            <div class="event-badges">
+                <span class="event-day-badge">Day 3</span>
+                <span class="event-cat-badge">Competition</span>
+            </div>
+            <div class="event-title">Team Challenge</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>9:00 AM – 1:00 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Singapore University of Technology and Design</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="event-card" data-day="3" data-category="talk">
+            <div class="event-badges">
+                <span class="event-day-badge">Day 3</span>
+                <span class="event-cat-badge">Talk</span>
+            </div>
+            <div class="event-title">Industry Talk</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>3:00 PM – 5:00 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Marina Bay Sands</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day 4 Events -->
+        <div class="event-card" data-day="4" data-category="ceremony">
+            <div class="event-badges">
+                <span class="event-day-badge">Day 4</span>
+                <span class="event-cat-badge">Ceremony</span>
+            </div>
+            <div class="event-title">Closing Ceremony</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>2:00 PM – 3:30 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Marina Bay Sands</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="event-card" data-day="4" data-category="ceremony">
+            <div class="event-badges">
+                <span class="event-day-badge">Day 4</span>
+                <span class="event-cat-badge">Ceremony</span>
+            </div>
+            <div class="event-title">Awards Presentation</div>
+            <div class="event-details">
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span>4:00 PM – 5:30 PM</span>
+                </div>
+                <div class="event-detail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Marina Bay Sands</span>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- No events message -->
+    <div class="no-events" id="no-events">No events match the selected filters.</div>
 
     {% include 'partials/navbar.html' %}
 
     <script>
-        // Filter logic
+        const dayBtns = document.querySelectorAll('.day-btn');
         const filterBtns = document.querySelectorAll('.filter-btn');
         const eventCards = document.querySelectorAll('.event-card');
+        const noEvents = document.getElementById('no-events');
 
-        filterBtns.forEach(btn => {
+        let activeDay = '1';
+        let activeCategory = 'all';
+
+        function applyFilters() {
+            let visibleCount = 0;
+
+            eventCards.forEach(card => {
+                const matchDay = card.dataset.day === activeDay;
+                const matchCat = activeCategory === 'all' || card.dataset.category === activeCategory;
+
+                if (matchDay && matchCat) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            // Show/hide no-events message
+            noEvents.classList.toggle('visible', visibleCount === 0);
+        }
+
+        // Day selection
+        dayBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                const category = btn.dataset.category;
-
-                // Update active button
-                filterBtns.forEach(b => b.classList.remove('active'));
+                activeDay = btn.dataset.day;
+                dayBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-
-                // Show/hide cards
-                eventCards.forEach(card => {
-                    if (category === 'all' || card.dataset.category === category) {
-                        card.classList.remove('hidden');
-                    } else {
-                        card.classList.add('hidden');
-                    }
-                });
+                applyFilters();
             });
         });
+
+        // Category filter
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeCategory = btn.dataset.category;
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                applyFilters();
+            });
+        });
+
+        // Initial filter on page load
+        applyFilters();
     </script>
 </body>
 </html>

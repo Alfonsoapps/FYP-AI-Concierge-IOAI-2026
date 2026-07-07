@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map - IOAI 2027</title>
+    <title>Venue Directory - IOAI 2027</title>
     <link rel="stylesheet" href="/static/css/navbar.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,16 +12,160 @@
             background: #0c0c1d;
             color: #e8e8f0;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            padding: 32px 24px 100px;
+        }
+
+        .page-header {
+            max-width: 600px;
+            margin: 0 auto 28px;
+        }
+
+        .page-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            font-size: 0.88rem;
+            color: #8080a0;
+        }
+
+        .venues-list {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .venue-card {
+            background: rgba(14, 14, 32, 0.9);
+            border: 1px solid rgba(124, 58, 237, 0.15);
+            border-radius: 14px;
+            padding: 22px 22px 18px;
+            transition: border-color 0.2s ease;
+        }
+
+        .venue-card:hover {
+            border-color: rgba(124, 58, 237, 0.35);
+        }
+
+        .venue-type {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            background: rgba(124, 58, 237, 0.12);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 20px;
+            color: #a78bfa;
+            margin-bottom: 10px;
+        }
+
+        .venue-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e8e8f0;
+            margin-bottom: 8px;
+        }
+
+        .venue-desc {
+            font-size: 0.84rem;
+            color: #8080a0;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .venue-address {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding-bottom: 80px;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #6060880;
+            margin-bottom: 16px;
         }
-        h1 { font-size: 1.8rem; color: #8080a0; }
+
+        .venue-address svg {
+            width: 14px;
+            height: 14px;
+            stroke: #7c3aed;
+            flex-shrink: 0;
+        }
+
+        .venue-address span {
+            color: #8080a0;
+        }
+
+        .venue-btn {
+            display: inline-block;
+            padding: 9px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            background: rgba(124, 58, 237, 0.08);
+            color: #a78bfa;
+            font-size: 0.8rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .venue-btn:hover {
+            background: rgba(124, 58, 237, 0.18);
+            border-color: #7c3aed;
+            color: #e8e8f0;
+        }
     </style>
 </head>
 <body>
-    <h1>Map Page - Coming Soon</h1>
+    <div class="page-header">
+        <h1>Venue Directory</h1>
+        <p>Explore IOAI venues and event locations across Singapore.</p>
+    </div>
+
+    <div class="venues-list">
+        <!-- Venue 1 -->
+        <div class="venue-card">
+            <span class="venue-type">Main Event Venue</span>
+            <div class="venue-name">Marina Bay Sands</div>
+            <div class="venue-desc">Host venue for major ceremonies and networking events.</div>
+            <div class="venue-address">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>10 Bayfront Avenue, Singapore</span>
+            </div>
+            <button class="venue-btn">View Venue</button>
+        </div>
+
+        <!-- Venue 2 -->
+        <div class="venue-card">
+            <span class="venue-type">Workshop Venue</span>
+            <div class="venue-name">National University of Singapore</div>
+            <div class="venue-desc">Location for workshops and educational sessions.</div>
+            <div class="venue-address">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>21 Lower Kent Ridge Road, Singapore</span>
+            </div>
+            <button class="venue-btn">View Venue</button>
+        </div>
+
+        <!-- Venue 3 -->
+        <div class="venue-card">
+            <span class="venue-type">Competition Venue</span>
+            <div class="venue-name">Singapore University of Technology and Design</div>
+            <div class="venue-desc">Location for competition activities and team challenges.</div>
+            <div class="venue-address">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>8 Somapah Road, Singapore</span>
+            </div>
+            <button class="venue-btn">View Venue</button>
+        </div>
+    </div>
 
     {% include 'partials/navbar.html' %}
 </body>

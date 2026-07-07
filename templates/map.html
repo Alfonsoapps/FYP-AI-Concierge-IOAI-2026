@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Venue Directory - IOAI 2027</title>
     <link rel="stylesheet" href="/static/css/navbar.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -16,172 +18,92 @@
             padding: 32px 24px 100px;
         }
 
-        .page-header {
-            max-width: 600px;
-            margin: 0 auto 28px;
-        }
-
+        .page-header { max-width: 700px; margin: 0 auto 20px; }
         .page-header h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-size: 1.6rem; font-weight: 700; margin-bottom: 8px;
             background: linear-gradient(135deg, #7c3aed, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { font-size: 0.88rem; color: #8080a0; }
+
+        /* Map Container */
+        #map-container {
+            max-width: 700px;
+            margin: 0 auto 24px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
-        .page-header p {
-            font-size: 0.88rem;
-            color: #8080a0;
+        #map {
+            width: 100%;
+            height: 300px;
         }
 
-        .venues-list {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+        /* Dark map tiles override */
+        .leaflet-tile-pane { filter: brightness(0.7) saturate(0.8) hue-rotate(10deg); }
+        .leaflet-control-zoom a { background: #1a1a2e !important; color: #a78bfa !important; border-color: rgba(124,58,237,0.3) !important; }
+        .leaflet-control-attribution { background: rgba(12,12,29,0.8) !important; color: #505070 !important; }
+        .leaflet-control-attribution a { color: #7c3aed !important; }
+        .leaflet-popup-content-wrapper { background: #14142a; color: #e8e8f0; border-radius: 10px; border: 1px solid rgba(124,58,237,0.3); }
+        .leaflet-popup-tip { background: #14142a; }
+        .leaflet-popup-content { font-family: 'Inter', system-ui, sans-serif; font-size: 0.82rem; line-height: 1.5; }
+        .leaflet-popup-content strong { color: #a78bfa; }
+
+        /* Venues List */
+        .section-label {
+            max-width: 700px; margin: 0 auto 14px; font-size: 0.78rem; font-weight: 600;
+            color: #a0a0c0; letter-spacing: 0.04em; text-transform: uppercase;
         }
+
+        .venues-list { max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 
         .venue-card {
-            background: rgba(14, 14, 32, 0.9);
-            border: 1px solid rgba(124, 58, 237, 0.15);
-            border-radius: 14px;
-            padding: 22px 22px 18px;
-            transition: border-color 0.2s ease;
+            background: rgba(14, 14, 32, 0.9); border: 1px solid rgba(124, 58, 237, 0.15);
+            border-radius: 14px; padding: 22px 22px 18px; transition: border-color 0.2s ease;
         }
-
-        .venue-card:hover {
-            border-color: rgba(124, 58, 237, 0.35);
-        }
+        .venue-card:hover { border-color: rgba(124, 58, 237, 0.35); }
+        .venue-card.highlighted { border-color: rgba(124, 58, 237, 0.5); box-shadow: 0 0 12px rgba(124, 58, 237, 0.15); }
 
         .venue-type {
-            display: inline-block;
-            font-size: 0.68rem;
-            font-weight: 600;
-            padding: 3px 10px;
-            background: rgba(124, 58, 237, 0.12);
-            border: 1px solid rgba(124, 58, 237, 0.2);
-            border-radius: 20px;
-            color: #a78bfa;
-            margin-bottom: 10px;
+            display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 3px 10px;
+            background: rgba(124, 58, 237, 0.12); border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 20px; color: #a78bfa; margin-bottom: 10px;
         }
-
-        .venue-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #e8e8f0;
-            margin-bottom: 8px;
-        }
-
-        .venue-desc {
-            font-size: 0.84rem;
-            color: #8080a0;
-            line-height: 1.5;
-            margin-bottom: 12px;
-        }
-
-        .venue-address {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.8rem;
-            margin-bottom: 16px;
-        }
-
-        .venue-address svg {
-            width: 14px;
-            height: 14px;
-            stroke: #7c3aed;
-            flex-shrink: 0;
-        }
-
-        .venue-address span {
-            color: #8080a0;
-        }
+        .venue-name { font-size: 1.1rem; font-weight: 600; color: #e8e8f0; margin-bottom: 8px; }
+        .venue-desc { font-size: 0.84rem; color: #8080a0; line-height: 1.5; margin-bottom: 12px; }
+        .venue-address { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; margin-bottom: 16px; }
+        .venue-address svg { width: 14px; height: 14px; stroke: #7c3aed; flex-shrink: 0; }
+        .venue-address span { color: #8080a0; }
 
         .venue-btn {
-            display: inline-block;
-            padding: 9px 20px;
-            border-radius: 8px;
-            border: 1px solid rgba(124, 58, 237, 0.3);
-            background: rgba(124, 58, 237, 0.08);
-            color: #a78bfa;
-            font-size: 0.8rem;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            display: inline-block; padding: 9px 20px; border-radius: 8px;
+            border: 1px solid rgba(124, 58, 237, 0.3); background: rgba(124, 58, 237, 0.08);
+            color: #a78bfa; font-size: 0.8rem; font-weight: 500; font-family: inherit;
+            cursor: pointer; transition: all 0.2s ease;
         }
+        .venue-btn:hover { background: rgba(124, 58, 237, 0.18); border-color: #7c3aed; color: #e8e8f0; }
+        .venue-btn.expanded { background: rgba(124, 58, 237, 0.18); border-color: #7c3aed; color: #e8e8f0; }
 
-        .venue-btn:hover {
-            background: rgba(124, 58, 237, 0.18);
-            border-color: #7c3aed;
-            color: #e8e8f0;
+        .map-btn {
+            display: inline-block; padding: 9px 20px; border-radius: 8px;
+            border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08);
+            color: #10b981; font-size: 0.8rem; font-weight: 500; font-family: inherit;
+            cursor: pointer; transition: all 0.2s ease; margin-left: 8px;
         }
-
-        .venue-btn.expanded {
-            background: rgba(124, 58, 237, 0.18);
-            border-color: #7c3aed;
-            color: #e8e8f0;
-        }
+        .map-btn:hover { background: rgba(16,185,129,0.18); border-color: #10b981; color: #e8e8f0; }
 
         /* Expandable Details */
-        .venue-details {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease, margin-top 0.3s ease;
-            margin-top: 0;
-        }
-
-        .venue-details.open {
-            max-height: 300px;
-            margin-top: 16px;
-        }
-
-        .venue-details-inner {
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .detail-section {
-            margin-bottom: 14px;
-        }
-
-        .detail-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .detail-label {
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: #a0a0c0;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
-        .detail-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .detail-list li {
-            font-size: 0.82rem;
-            color: #8080a0;
-            padding-left: 14px;
-            position: relative;
-        }
-
-        .detail-list li::before {
-            content: '•';
-            position: absolute;
-            left: 0;
-            color: #7c3aed;
-        }
+        .venue-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin-top 0.3s ease; margin-top: 0; }
+        .venue-details.open { max-height: 300px; margin-top: 16px; }
+        .venue-details-inner { padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+        .detail-section { margin-bottom: 14px; }
+        .detail-section:last-child { margin-bottom: 0; }
+        .detail-label { font-size: 0.72rem; font-weight: 600; color: #a0a0c0; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+        .detail-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+        .detail-list li { font-size: 0.82rem; color: #8080a0; padding-left: 14px; position: relative; }
+        .detail-list li::before { content: '•'; position: absolute; left: 0; color: #7c3aed; }
     </style>
 </head>
 <body>
@@ -189,6 +111,13 @@
         <h1>Venue Directory</h1>
         <p>Explore IOAI venues and event locations across Singapore.</p>
     </div>
+
+    <!-- Interactive Map -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <div class="section-label">Venues</div>
 
     <div class="venues-list">
         <!-- Venue 1: Marina Bay Sands -->
@@ -200,7 +129,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>10 Bayfront Avenue, Singapore</span>
             </div>
-            <button class="venue-btn" onclick="toggleDetails(this)">View Venue</button>
+            <button class="venue-btn" onclick="toggleDetails(this)">View Details</button>
+            <button class="map-btn" onclick="focusVenue('marina-bay-sands')">Show on Map</button>
             <div class="venue-details">
                 <div class="venue-details-inner">
                     <div class="detail-section">
@@ -231,7 +161,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>21 Lower Kent Ridge Road, Singapore</span>
             </div>
-            <button class="venue-btn" onclick="toggleDetails(this)">View Venue</button>
+            <button class="venue-btn" onclick="toggleDetails(this)">View Details</button>
+            <button class="map-btn" onclick="focusVenue('nus')">Show on Map</button>
             <div class="venue-details">
                 <div class="venue-details-inner">
                     <div class="detail-section">
@@ -262,7 +193,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>8 Somapah Road, Singapore</span>
             </div>
-            <button class="venue-btn" onclick="toggleDetails(this)">View Venue</button>
+            <button class="venue-btn" onclick="toggleDetails(this)">View Details</button>
+            <button class="map-btn" onclick="focusVenue('sutd')">Show on Map</button>
             <div class="venue-details">
                 <div class="venue-details-inner">
                     <div class="detail-section">
@@ -287,42 +219,128 @@
 
     {% include 'partials/navbar.html' %}
 
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
+        // Venue data
+        const venues = {
+            'marina-bay-sands': {
+                name: 'Marina Bay Sands',
+                lat: 1.2834, lng: 103.8607,
+                events: ['Opening Ceremony', 'Closing Ceremony']
+            },
+            'nus': {
+                name: 'National University of Singapore',
+                lat: 1.2966, lng: 103.7764,
+                events: ['AI Workshop', 'AI Ethics Workshop', 'Industry Talk']
+            },
+            'sutd': {
+                name: 'Singapore University of Technology and Design',
+                lat: 1.3413, lng: 103.9638,
+                events: ['Team Challenge', 'Competition Sessions']
+            }
+        };
+
+        // Initialize map centered on Singapore
+        const map = L.map('map').setView([1.31, 103.86], 12);
+
+        // OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+        }).addTo(map);
+
+        // Custom purple marker icon
+        const venueIcon = L.divIcon({
+            className: '',
+            html: '<div style="width:28px;height:28px;background:#7c3aed;border:3px solid #a78bfa;border-radius:50%;box-shadow:0 2px 8px rgba(124,58,237,0.5);"></div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+            popupAnchor: [0, -16]
+        });
+
+        // Create markers
+        const markers = {};
+        Object.entries(venues).forEach(([slug, venue]) => {
+            const popupContent = `<strong>${venue.name}</strong><br><br><em>Events:</em><br>${venue.events.map(e => '• ' + e).join('<br>')}`;
+            const marker = L.marker([venue.lat, venue.lng], { icon: venueIcon })
+                .addTo(map)
+                .bindPopup(popupContent);
+
+            // When marker is clicked, expand the corresponding venue card
+            marker.on('click', () => {
+                expandVenueCard(slug);
+            });
+
+            markers[slug] = marker;
+        });
+
+        // Focus map on a venue and open popup
+        function focusVenue(slug) {
+            const venue = venues[slug];
+            if (!venue) return;
+            map.flyTo([venue.lat, venue.lng], 15, { duration: 0.8 });
+            markers[slug].openPopup();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Expand a venue card by slug
+        function expandVenueCard(slug) {
+            const card = document.querySelector(`.venue-card[data-venue="${slug}"]`);
+            if (!card) return;
+
+            // Collapse all others
+            collapseAll();
+
+            // Expand this one
+            const details = card.querySelector('.venue-details');
+            const btn = card.querySelector('.venue-btn');
+            if (details && btn) {
+                details.classList.add('open');
+                btn.classList.add('expanded');
+                btn.textContent = 'Hide Details';
+                card.classList.add('highlighted');
+            }
+
+            // Scroll to card
+            setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+        }
+
+        // Toggle venue details (accordion)
         function toggleDetails(btn) {
             const card = btn.closest('.venue-card');
             const details = card.querySelector('.venue-details');
             const isOpen = details.classList.contains('open');
 
-            // Close all other open details
-            document.querySelectorAll('.venue-details.open').forEach(d => {
-                d.classList.remove('open');
-                const b = d.closest('.venue-card').querySelector('.venue-btn');
-                b.classList.remove('expanded');
-                b.textContent = 'View Venue';
-            });
+            collapseAll();
 
-            // Toggle this one
             if (!isOpen) {
                 details.classList.add('open');
                 btn.classList.add('expanded');
                 btn.textContent = 'Hide Details';
+                card.classList.add('highlighted');
             }
         }
 
-        // Auto-expand venue from URL query parameter
+        function collapseAll() {
+            document.querySelectorAll('.venue-details.open').forEach(d => d.classList.remove('open'));
+            document.querySelectorAll('.venue-btn.expanded').forEach(b => {
+                b.classList.remove('expanded');
+                b.textContent = 'View Details';
+            });
+            document.querySelectorAll('.venue-card.highlighted').forEach(c => c.classList.remove('highlighted'));
+        }
+
+        // Auto-expand from URL query parameter (Schedule-to-Maps integration)
         (function() {
             const params = new URLSearchParams(window.location.search);
             const venueSlug = params.get('venue');
-            if (venueSlug) {
-                const card = document.querySelector(`.venue-card[data-venue="${venueSlug}"]`);
-                if (card) {
-                    const btn = card.querySelector('.venue-btn');
-                    if (btn) {
-                        toggleDetails(btn);
-                        // Scroll to the card
-                        setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
-                    }
-                }
+            if (venueSlug && venues[venueSlug]) {
+                setTimeout(() => {
+                    focusVenue(venueSlug);
+                    expandVenueCard(venueSlug);
+                }, 300);
             }
         })();
     </script>

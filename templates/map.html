@@ -87,7 +87,6 @@
             align-items: center;
             gap: 8px;
             font-size: 0.8rem;
-            color: #6060880;
             margin-bottom: 16px;
         }
 
@@ -121,6 +120,68 @@
             border-color: #7c3aed;
             color: #e8e8f0;
         }
+
+        .venue-btn.expanded {
+            background: rgba(124, 58, 237, 0.18);
+            border-color: #7c3aed;
+            color: #e8e8f0;
+        }
+
+        /* Expandable Details */
+        .venue-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, margin-top 0.3s ease;
+            margin-top: 0;
+        }
+
+        .venue-details.open {
+            max-height: 300px;
+            margin-top: 16px;
+        }
+
+        .venue-details-inner {
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .detail-section {
+            margin-bottom: 14px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #a0a0c0;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .detail-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-list li {
+            font-size: 0.82rem;
+            color: #8080a0;
+            padding-left: 14px;
+            position: relative;
+        }
+
+        .detail-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #7c3aed;
+        }
     </style>
 </head>
 <body>
@@ -130,7 +191,7 @@
     </div>
 
     <div class="venues-list">
-        <!-- Venue 1 -->
+        <!-- Venue 1: Marina Bay Sands -->
         <div class="venue-card">
             <span class="venue-type">Main Event Venue</span>
             <div class="venue-name">Marina Bay Sands</div>
@@ -139,10 +200,29 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>10 Bayfront Avenue, Singapore</span>
             </div>
-            <button class="venue-btn">View Venue</button>
+            <button class="venue-btn" onclick="toggleDetails(this)">View Venue</button>
+            <div class="venue-details">
+                <div class="venue-details-inner">
+                    <div class="detail-section">
+                        <div class="detail-label">Nearby Events</div>
+                        <ul class="detail-list">
+                            <li>Opening Ceremony</li>
+                            <li>Closing Ceremony</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Facilities</div>
+                        <ul class="detail-list">
+                            <li>Registration Area</li>
+                            <li>Food & Beverage Outlets</li>
+                            <li>Rest Areas</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Venue 2 -->
+        <!-- Venue 2: NUS -->
         <div class="venue-card">
             <span class="venue-type">Workshop Venue</span>
             <div class="venue-name">National University of Singapore</div>
@@ -151,10 +231,29 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>21 Lower Kent Ridge Road, Singapore</span>
             </div>
-            <button class="venue-btn">View Venue</button>
+            <button class="venue-btn" onclick="toggleDetails(this)">View Venue</button>
+            <div class="venue-details">
+                <div class="venue-details-inner">
+                    <div class="detail-section">
+                        <div class="detail-label">Nearby Events</div>
+                        <ul class="detail-list">
+                            <li>AI Workshop</li>
+                            <li>Industry Talk</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Facilities</div>
+                        <ul class="detail-list">
+                            <li>Lecture Theatres</li>
+                            <li>Study Areas</li>
+                            <li>Cafeterias</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Venue 3 -->
+        <!-- Venue 3: SUTD -->
         <div class="venue-card">
             <span class="venue-type">Competition Venue</span>
             <div class="venue-name">Singapore University of Technology and Design</div>
@@ -163,10 +262,50 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>8 Somapah Road, Singapore</span>
             </div>
-            <button class="venue-btn">View Venue</button>
+            <button class="venue-btn" onclick="toggleDetails(this)">View Venue</button>
+            <div class="venue-details">
+                <div class="venue-details-inner">
+                    <div class="detail-section">
+                        <div class="detail-label">Nearby Events</div>
+                        <ul class="detail-list">
+                            <li>Team Challenge</li>
+                            <li>Competition Sessions</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Facilities</div>
+                        <ul class="detail-list">
+                            <li>Competition Hall</li>
+                            <li>Breakout Rooms</li>
+                            <li>Dining Area</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     {% include 'partials/navbar.html' %}
+
+    <script>
+        function toggleDetails(btn) {
+            const details = btn.nextElementSibling;
+            const isOpen = details.classList.contains('open');
+
+            // Close all other open details
+            document.querySelectorAll('.venue-details.open').forEach(d => {
+                d.classList.remove('open');
+                d.previousElementSibling.classList.remove('expanded');
+                d.previousElementSibling.textContent = 'View Venue';
+            });
+
+            // Toggle this one
+            if (!isOpen) {
+                details.classList.add('open');
+                btn.classList.add('expanded');
+                btn.textContent = 'Hide Details';
+            }
+        }
+    </script>
 </body>
 </html>

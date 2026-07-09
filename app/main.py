@@ -19,7 +19,22 @@ from fastapi.templating import Jinja2Templates
 from app.config import get_settings
 from app.routers import chat
 from app.routers import tts
-from app.routers import rag
+from app.routers import announcements
+from app.services import announcement_service
+
+# The RAG router depends on chromadb, which may be unavailable in some
+# environments (e.g. no prebuilt wheel for the running Python version).
+# Import it defensively so the rest of the platform still boots; when
+# chromadb is installed this behaves exactly as before.
+try:
+    from app.routers import rag
+    _RAG_AVAILABLE = True
+except Exception as _rag_err:  # pragma: no cover - environment dependent
+    rag = None
+    _RAG_AVAILABLE = False
+    logging.getLogger(__name__).warning(
+        "RAG router disabled (chromadb unavailable): %s", _rag_err
+    )
 
 # Configure logging
 logging.basicConfig(
@@ -38,13 +53,22 @@ app = FastAPI(
 # Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-# Register API routers (chat, TTS, RAG)
+# Register API routers (chat, TTS, RAG, Announcements)
 app.include_router(chat.router)
 app.include_router(tts.router)
-app.include_router(rag.router)
+if _RAG_AVAILABLE:
+    app.include_router(rag.router)
+app.include_router(announcements.router)
 
 # Serve static assets (CSS, JS, Live2D models, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.on_event("startup")
+async def _init_announcements():
+    """Initialize the announcements store and seed sample data if empty."""
+    announcement_service.init_db()
+    announcement_service.seed_sample_data()
 
 
 # ============================================================
@@ -79,6 +103,22 @@ async def schedule_page(request: Request):
 async def profile_page(request: Request):
     """Profile page - coming soon."""
     return templates.TemplateResponse("profile.html", {"request": request, "active_page": "profile"})
+
+
+@app.get("/announcements")
+async def announcements_page(request: Request):
+    """User-facing announcements page (current + history)."""
+    return templates.TemplateResponse(
+        "announcements.html", {"request": request, "active_page": "announcements"}
+    )
+
+
+@app.get("/admin/announcements")
+async def admin_announcements_page(request: Request):
+    """Organiser announcement management console."""
+    return templates.TemplateResponse(
+        "admin_announcements.html", {"request": request, "active_page": "announcements"}
+    )
 
 
 @app.get("/onboarding")

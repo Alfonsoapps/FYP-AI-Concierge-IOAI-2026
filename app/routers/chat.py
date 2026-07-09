@@ -58,7 +58,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
     try:
         # Call the NVIDIA service to generate an AI response
         # This is a synchronous call (uses requests library)
-        reply = generate_response(user_message)
+        reply = generate_response(user_message, role=request.role)
 
     except ValueError as e:
         # Configuration errors (missing API key, invalid key, etc.)

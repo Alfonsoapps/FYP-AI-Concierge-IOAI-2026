@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Announcements - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased; padding: 32px 24px 100px;
+        }
+        .wrap { max-width: 600px; margin: 0 auto; }
+        .page-header { margin-bottom: 20px; }
+        .page-header h1 {
+            font-size: 1.6rem; font-weight: 700; margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { font-size: 0.88rem; color: #8080a0; }
+
+        .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
+            font-size: 0.82rem; font-weight: 600; font-family: inherit; transition: all 0.2s ease; }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
+        .btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #a0a0c0; }
+        .btn-ghost:hover { border-color: rgba(124,58,237,0.4); color: #a78bfa; }
+        .btn-danger { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        .btn-danger:hover { background: rgba(239,68,68,0.2); }
+        .btn-sm { padding: 6px 12px; font-size: 0.72rem; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+
+        .card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
+            border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; }
+        .card.critical { border-color: rgba(239,68,68,0.3); }
+        .card-badges { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .badge { display: inline-block; font-size: 0.64rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+        .badge-cat { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #8080a0; }
+        .badge-normal { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2); color: #a78bfa; }
+        .badge-critical { background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        .badge-draft { background: rgba(148,163,184,0.14); border: 1px solid rgba(148,163,184,0.3); color: #94a3b8; }
+        .badge-published { background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+        .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+        .card-msg { font-size: 0.82rem; color: #b0b0c8; line-height: 1.5; margin-bottom: 8px; }
+        .card-meta { font-size: 0.7rem; color: #606080; margin-bottom: 12px; }
+        .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* Access gate */
+        .gate { text-align: center; padding: 48px 20px; }
+        .gate h2 { font-size: 1.2rem; margin-bottom: 10px; color: #e8e8f0; }
+        .gate p { font-size: 0.86rem; color: #8080a0; margin-bottom: 20px; line-height: 1.5; }
+
+        /* Modal */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .overlay.open { display: flex; }
+        .modal { width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+            background: #14142a; border: 1px solid rgba(124,58,237,0.3); border-radius: 18px; padding: 28px 24px; }
+        .modal h2 { font-size: 1.15rem; margin-bottom: 18px; }
+        .fg { margin-bottom: 16px; }
+        .fg label { display: block; font-size: 0.74rem; font-weight: 600; color: #a0a0c0; margin-bottom: 6px; }
+        .fg input, .fg textarea, .fg select {
+            width: 100%; padding: 11px 13px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e8e8f0;
+            font-size: 0.88rem; font-family: inherit; outline: none; transition: border-color 0.2s ease; }
+        .fg input:focus, .fg textarea:focus, .fg select:focus { border-color: rgba(124,58,237,0.5); }
+        .fg textarea { resize: vertical; min-height: 90px; }
+        .fg select option { background: #14142a; }
+        .checkbox-row { display: flex; align-items: center; gap: 10px; }
+        .checkbox-row input { width: auto; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+        .form-error { font-size: 0.76rem; color: #ef4444; margin-bottom: 12px; display: none; }
+        .form-error.visible { display: block; }
+
+        .empty { text-align: center; padding: 40px 20px; color: #505070; font-size: 0.9rem; }
+
+        /* Stats box */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+        .stat { background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.2);
+            border-radius: 12px; padding: 14px; text-align: center; }
+        .stat-num { font-size: 1.4rem; font-weight: 700; color: #a78bfa; }
+        .stat-label { font-size: 0.66rem; color: #8080a0; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+        .not-ack-list { margin-top: 8px; font-size: 0.8rem; color: #b0b0c8; }
+        .not-ack-list li { margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <div class="wrap" id="wrap">
+        <div class="page-header">
+            <h1>Manage Announcements</h1>
+            <p>Create, publish, and track announcements for participants.</p>
+        </div>
+
+        <!-- Access gate for non-organisers -->
+        <div class="gate" id="gate" hidden>
+            <h2>Organisers only</h2>
+            <p>Announcement management is restricted to organisers. Your current role does not have access.<br>
+               Role information comes from your device and is not enforced server-side authentication.</p>
+            <button class="btn btn-ghost" id="make-organiser">Set my role to Organiser (testing)</button>
+        </div>
+
+        <!-- Organiser content -->
+        <div id="admin-content" hidden>
+            <div class="toolbar">
+                <span style="font-size:0.8rem;color:#8080a0;" id="count-label"></span>
+                <button class="btn btn-primary" id="new-btn">+ New Announcement</button>
+            </div>
+            <div id="list"></div>
+            <div class="empty" id="empty" hidden>No announcements yet. Create your first one.</div>
+        </div>
+    </div>
+
+    <!-- Create/Edit modal -->
+    <div class="overlay" id="form-overlay">
+        <div class="modal">
+            <h2 id="form-title">New Announcement</h2>
+            <div class="form-error" id="form-error"></div>
+            <input type="hidden" id="f-id">
+            <div class="fg">
+                <label for="f-title">Title</label>
+                <input type="text" id="f-title" maxlength="200" placeholder="Announcement title">
+            </div>
+            <div class="fg">
+                <label for="f-message">Message</label>
+                <textarea id="f-message" maxlength="5000" placeholder="Announcement details"></textarea>
+            </div>
+            <div class="fg">
+                <label for="f-category">Category</label>
+                <select id="f-category">
+                    <option>General</option>
+                    <option>Schedule</option>
+                    <option>Logistics</option>
+                    <option>Emergency</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label for="f-priority">Priority</label>
+                <select id="f-priority">
+                    <option value="Normal">Normal</option>
+                    <option value="Critical">Critical</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label for="f-audience">Target Audience</label>
+                <select id="f-audience">
+                    <option>Students</option>
+                    <option>Team Leaders</option>
+                    <option>Observers</option>
+                    <option>Volunteers</option>
+                    <option>Organisers</option>
+                    <option>All Users</option>
+                </select>
+            </div>
+            <div class="fg checkbox-row">
+                <input type="checkbox" id="f-ack">
+                <label for="f-ack" style="margin:0;">Require acknowledgement (critical)</label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
+                <button class="btn btn-primary" id="save-btn">Save Draft</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats modal -->
+    <div class="overlay" id="stats-overlay">
+        <div class="modal">
+            <h2 id="stats-title">Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat"><div class="stat-num" id="s-targeted">0</div><div class="stat-label">Targeted</div></div>
+                <div class="stat"><div class="stat-num" id="s-read">0</div><div class="stat-label">Read</div></div>
+                <div class="stat"><div class="stat-num" id="s-ack">0</div><div class="stat-label">Acknowledged</div></div>
+            </div>
+            <div id="s-notack-wrap" hidden>
+                <div style="font-size:0.74rem;font-weight:600;color:#a0a0c0;text-transform:uppercase;letter-spacing:0.04em;">Not yet acknowledged</div>
+                <ul class="not-ack-list" id="s-notack"></ul>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="stats-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    {% include 'partials/navbar.html' %}
+
+    <script>
+        const role = localStorage.getItem('participant_role') || '';
+        const ORGANISER_ALIASES = ['organiser', 'organizer', 'organisers', 'organizers'];
+        function isOrganiser(r) { return ORGANISER_ALIASES.includes((r || '').trim().toLowerCase()); }
+
+        const roleParam = () => 'role=' + encodeURIComponent(role);
+
+        function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+        function fmtDate(iso) { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+
+        // ---- Access gate ----
+        function initAccess() {
+            if (isOrganiser(role)) {
+                document.getElementById('admin-content').hidden = false;
+                document.getElementById('gate').hidden = true;
+                loadList();
+            } else {
+                document.getElementById('admin-content').hidden = true;
+                document.getElementById('gate').hidden = false;
+            }
+        }
+        document.getElementById('make-organiser').addEventListener('click', () => {
+            localStorage.setItem('participant_role', 'Organiser');
+            if (!localStorage.getItem('participant_name')) localStorage.setItem('participant_name', 'Organiser Admin');
+            location.reload();
+        });
+
+        // ---- List ----
+        async function loadList() {
+            const res = await fetch('/api/admin/announcements?' + roleParam());
+            if (!res.ok) return;
+            const items = await res.json();
+            const list = document.getElementById('list');
+            const empty = document.getElementById('empty');
+            document.getElementById('count-label').textContent = items.length + ' announcement' + (items.length === 1 ? '' : 's');
+            list.innerHTML = '';
+            if (items.length === 0) { empty.hidden = false; return; }
+            empty.hidden = true;
+
+            items.forEach(a => {
+                const critical = a.priority === 'Critical';
+                const statusBadge = a.status === 'published'
+                    ? '<span class="badge badge-published">Published</span>'
+                    : '<span class="badge badge-draft">Draft</span>';
+                const priorityBadge = critical
+                    ? '<span class="badge badge-critical">Critical</span>'
+                    : '<span class="badge badge-normal">Normal</span>';
+                const publishBtn = a.status === 'draft'
+                    ? `<button class="btn btn-primary btn-sm" data-act="publish" data-id="${esc(a.id)}">Publish</button>` : '';
+
+                list.innerHTML += `
+                <div class="card ${critical ? 'critical' : ''}">
+                    <div class="card-badges">
+                        ${statusBadge}${priorityBadge}
+                        <span class="badge badge-cat">${esc(a.category)}</span>
+                        <span class="badge badge-cat">${esc(a.target_audience)}</span>
+                        ${a.ack_required ? '<span class="badge badge-critical">Ack required</span>' : ''}
+                    </div>
+                    <div class="card-title">${esc(a.title)}</div>
+                    <div class="card-msg">${esc(a.message)}</div>
+                    <div class="card-meta">Created ${esc(fmtDate(a.created_at))}${a.published_at ? ' · Published ' + esc(fmtDate(a.published_at)) : ''}</div>
+                    <div class="card-actions">
+                        ${publishBtn}
+                        <button class="btn btn-ghost btn-sm" data-act="stats" data-id="${esc(a.id)}">Stats</button>
+                        <button class="btn btn-ghost btn-sm" data-act="edit" data-id="${esc(a.id)}">Edit</button>
+                        <button class="btn btn-danger btn-sm" data-act="delete" data-id="${esc(a.id)}">Delete</button>
+                    </div>
+                </div>`;
+            });
+
+            list.querySelectorAll('[data-act]').forEach(btn => {
+                btn.addEventListener('click', () => handleAction(btn.dataset.act, btn.dataset.id, items));
+            });
+        }
+
+        function handleAction(act, id, items) {
+            if (act === 'publish') return publish(id);
+            if (act === 'delete') return del(id);
+            if (act === 'stats') return showStats(id);
+            if (act === 'edit') return openForm(items.find(x => x.id === id));
+        }
+
+        // ---- Form ----
+        const formOverlay = document.getElementById('form-overlay');
+        function openForm(a) {
+            document.getElementById('form-error').classList.remove('visible');
+            document.getElementById('f-id').value = a ? a.id : '';
+            document.getElementById('form-title').textContent = a ? 'Edit Announcement' : 'New Announcement';
+            document.getElementById('save-btn').textContent = a ? 'Save Changes' : 'Save Draft';
+            document.getElementById('f-title').value = a ? a.title : '';
+            document.getElementById('f-message').value = a ? a.message : '';
+            document.getElementById('f-category').value = a ? a.category : 'General';
+            document.getElementById('f-priority').value = a ? a.priority : 'Normal';
+            document.getElementById('f-audience').value = a ? a.target_audience : 'All Users';
+            document.getElementById('f-ack').checked = a ? a.ack_required : false;
+            formOverlay.classList.add('open');
+        }
+        function closeForm() { formOverlay.classList.remove('open'); }
+
+        document.getElementById('new-btn').addEventListener('click', () => openForm(null));
+        document.getElementById('cancel-btn').addEventListener('click', closeForm);
+
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            const id = document.getElementById('f-id').value;
+            const payload = {
+                title: document.getElementById('f-title').value.trim(),
+                message: document.getElementById('f-message').value.trim(),
+                category: document.getElementById('f-category').value,
+                priority: document.getElementById('f-priority').value,
+                target_audience: document.getElementById('f-audience').value,
+                ack_required: document.getElementById('f-ack').checked
+            };
+            const errBox = document.getElementById('form-error');
+            if (!payload.title) { errBox.textContent = 'Title is required.'; errBox.classList.add('visible'); return; }
+            if (!payload.message) { errBox.textContent = 'Message is required.'; errBox.classList.add('visible'); return; }
+
+            const url = id
+                ? '/api/admin/announcements/' + id + '?' + roleParam()
+                : '/api/admin/announcements?' + roleParam();
+            const method = id ? 'PUT' : 'POST';
+            try {
+                const res = await fetch(url, {
+                    method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const e = await res.json().catch(() => ({}));
+                    errBox.textContent = e.detail || 'Could not save.'; errBox.classList.add('visible'); return;
+                }
+                closeForm();
+                loadList();
+            } catch (e) {
+                errBox.textContent = 'Network error. Please try again.'; errBox.classList.add('visible');
+            }
+        });
+
+        async function publish(id) {
+            const res = await fetch('/api/admin/announcements/' + id + '/publish?' + roleParam(), { method: 'POST' });
+            if (res.ok) loadList(); else alert('Could not publish.');
+        }
+        async function del(id) {
+            if (!confirm('Delete this announcement? This also removes its tracking records.')) return;
+            const res = await fetch('/api/admin/announcements/' + id + '?' + roleParam(), { method: 'DELETE' });
+            if (res.ok) loadList(); else alert('Could not delete.');
+        }
+
+        // ---- Stats ----
+        const statsOverlay = document.getElementById('stats-overlay');
+        async function showStats(id) {
+            const res = await fetch('/api/admin/announcements/' + id + '/stats?' + roleParam());
+            if (!res.ok) { alert('Could not load statistics.'); return; }
+            const s = await res.json();
+            document.getElementById('stats-title').textContent = 'Stats: ' + s.title;
+            document.getElementById('s-targeted').textContent = s.targeted_users;
+            document.getElementById('s-read').textContent = s.read_count;
+            document.getElementById('s-ack').textContent = s.acknowledged_count;
+            const wrap = document.getElementById('s-notack-wrap');
+            const ul = document.getElementById('s-notack');
+            ul.innerHTML = '';
+            if (s.ack_required) {
+                wrap.hidden = false;
+                if (s.not_acknowledged_users.length === 0) {
+                    ul.innerHTML = '<li style="color:#10b981;">Everyone tracked has acknowledged.</li>';
+                } else {
+                    s.not_acknowledged_users.forEach(n => { ul.innerHTML += '<li>' + esc(n) + '</li>'; });
+                }
+            } else {
+                wrap.hidden = true;
+            }
+            statsOverlay.classList.add('open');
+        }
+        document.getElementById('stats-close').addEventListener('click', () => statsOverlay.classList.remove('open'));
+
+        // Close modals on overlay click
+        [formOverlay, statsOverlay].forEach(ov => {
+            ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('open'); });
+        });
+
+        initAccess();
+    </script>
+</body>
+</html>

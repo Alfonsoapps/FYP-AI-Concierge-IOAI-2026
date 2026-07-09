@@ -29,6 +29,9 @@ build/
 # ChromaDB (future)
 chroma_data/
 
+# Announcements module runtime data (SQLite)
+app/data/
+
 # OS files
 .DS_Store
 Thumbs.db

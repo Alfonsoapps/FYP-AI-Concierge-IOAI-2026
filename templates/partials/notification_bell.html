@@ -1,0 +1,80 @@
+<!-- Notification Bell - include on any page to surface unread announcements -->
+<a href="/announcements" class="notif-bell" id="notif-bell" aria-label="Announcements" title="Announcements">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 01-3.46 0"/>
+    </svg>
+    <span class="notif-badge" id="notif-badge" hidden>0</span>
+</a>
+
+<style>
+    .notif-bell {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(14, 14, 32, 0.92);
+        border: 1px solid rgba(124, 58, 237, 0.25);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        z-index: 1100;
+        text-decoration: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        transition: all 0.2s ease;
+    }
+    .notif-bell:hover { border-color: #7c3aed; transform: translateY(-1px); }
+    .notif-bell svg { width: 20px; height: 20px; stroke: #a78bfa; }
+    .notif-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 0.62rem;
+        font-weight: 700;
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px #0c0c1d;
+    }
+</style>
+
+<script>
+    (function () {
+        const role = localStorage.getItem('participant_role') || '';
+        const user = localStorage.getItem('participant_name') || '';
+        const badge = document.getElementById('notif-badge');
+        if (!badge) return;
+
+        const params = new URLSearchParams();
+        if (role) params.set('role', role);
+        if (user) params.set('user', user);
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        fetch('/api/notifications?' + params.toString(), { signal: controller.signal })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+                clearTimeout(timeout);
+                const count = (data && typeof data.unread === 'number') ? data.unread : 0;
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : String(count);
+                    badge.hidden = false;
+                } else {
+                    badge.hidden = true;
+                }
+            })
+            .catch(() => { clearTimeout(timeout); /* fail soft: no badge */ });
+    })();
+</script>

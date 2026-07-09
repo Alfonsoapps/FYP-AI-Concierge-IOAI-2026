@@ -31,12 +31,47 @@ SYSTEM_PROMPT = (
 )
 
 
-def generate_response(user_message: str) -> str:
+def _announcement_context(role=None) -> str:
+    """
+    Build a short, plain-text summary of the latest published announcements so
+    the concierge can answer questions like "What announcements have I missed?"
+    or "Are there any urgent updates?".
+
+    Fails soft: returns an empty string if the announcement store is unavailable.
+    """
+    try:
+        # Imported lazily to avoid a hard dependency during unrelated chats.
+        from app.services import announcement_service as ann_svc
+
+        audience = ann_svc.normalize_role(role) if role else None
+        items = ann_svc.latest_published(audience=audience, limit=10)
+        if not items:
+            return ""
+
+        lines = []
+        for a in items:
+            urgent = " [CRITICAL]" if a.get("priority") == "Critical" else ""
+            ack = " (acknowledgement required)" if a.get("ack_required") else ""
+            lines.append(f"- {a['title']}{urgent}{ack}: {a['message']}")
+
+        return (
+            "\n\nHere are the latest published announcements relevant to this user. "
+            "Use them to answer any questions about announcements, missed updates, "
+            "or urgent notices:\n" + "\n".join(lines)
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        logger.warning("Could not load announcement context: %s", e)
+        return ""
+
+
+def generate_response(user_message: str, role=None) -> str:
     """
     Send a user message to the NVIDIA Chat Completions API and return the AI response.
 
     Args:
         user_message: The text message from the user.
+        role: Optional participant role used to include role-relevant
+            announcements as extra context for the model.
 
     Returns:
         A string containing the AI-generated reply.
@@ -67,11 +102,13 @@ def generate_response(user_message: str) -> str:
 
     # --- Build the request payload ---
     # This follows the OpenAI-compatible chat completions format
+    system_content = SYSTEM_PROMPT + _announcement_context(role)
+
     payload = {
         "model": settings.nvidia_model,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},  # Sets the AI's behavior
-            {"role": "user", "content": user_message},      # The user's actual question
+            {"role": "system", "content": system_content},  # Behavior + announcement context
+            {"role": "user", "content": user_message},       # The user's actual question
         ],
         "temperature": 0.7,   # Controls randomness (0 = deterministic, 1 = creative)
         "max_tokens": 1024,   # Maximum length of the AI response

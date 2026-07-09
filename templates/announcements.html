@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased; padding: 32px 24px 100px;
+        }
+        .page-header { max-width: 600px; margin: 0 auto 20px; }
+        .page-header h1 {
+            font-size: 1.6rem; font-weight: 700; margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { font-size: 0.88rem; color: #8080a0; }
+
+        .view-toggle { max-width: 600px; margin: 0 auto 20px; display: flex; gap: 8px; }
+        .view-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03); color: #8080a0; font-size: 0.78rem;
+            font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
+        .view-btn:hover { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #a78bfa; }
+        .view-btn.active { background: rgba(124,58,237,0.15); border-color: #7c3aed; color: #e8e8f0; }
+
+        .list { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+
+        .ann-card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
+            border-radius: 14px; padding: 18px 20px; transition: border-color 0.2s ease; }
+        .ann-card:hover { border-color: rgba(124,58,237,0.35); }
+        .ann-card.critical { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
+
+        .ann-badges { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+        .badge { display: inline-block; font-size: 0.66rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+        .badge-cat { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #8080a0; }
+        .badge-normal { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2); color: #a78bfa; }
+        .badge-critical { background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        .badge-unread { background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+
+        .ann-title { font-size: 1.05rem; font-weight: 600; color: #e8e8f0; margin-bottom: 8px; }
+        .ann-message { font-size: 0.86rem; color: #b0b0c8; line-height: 1.55; margin-bottom: 10px; }
+        .ann-meta { font-size: 0.72rem; color: #606080; }
+
+        .ack-row { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .btn-ack { padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer;
+            background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; font-size: 0.8rem;
+            font-weight: 600; font-family: inherit; transition: all 0.2s ease; }
+        .btn-ack:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(239,68,68,0.4); }
+        .btn-ack:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+        .ack-done { font-size: 0.78rem; font-weight: 600; color: #10b981; display: flex; align-items: center; gap: 6px; }
+        .ack-done svg { width: 15px; height: 15px; stroke: #10b981; }
+
+        .empty { max-width: 600px; margin: 0 auto; text-align: center; padding: 40px 20px;
+            color: #505070; font-size: 0.9rem; }
+        .error { max-width: 600px; margin: 0 auto 16px; padding: 14px 18px; text-align: center;
+            background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 12px; color: #ef4444; font-size: 0.82rem; display: none; }
+        .error.visible { display: block; }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1>Announcements</h1>
+        <p>Updates and notices relevant to you.</p>
+        <a href="/admin/announcements" id="manage-link" hidden
+           style="display:inline-block;margin-top:10px;font-size:0.78rem;font-weight:600;color:#a78bfa;
+                  text-decoration:none;padding:6px 14px;border:1px solid rgba(124,58,237,0.3);
+                  border-radius:8px;background:rgba(124,58,237,0.08);">Manage announcements →</a>
+    </div>
+
+    <div class="view-toggle">
+        <button class="view-btn active" id="view-current">Current</button>
+        <button class="view-btn" id="view-history">History</button>
+    </div>
+
+    <div class="error" id="error-box">Could not load announcements. Please try again.</div>
+    <div class="list" id="list"></div>
+    <div class="empty" id="empty" hidden>No announcements available right now.</div>
+
+    {% include 'partials/navbar.html' %}
+
+    <script>
+        const role = localStorage.getItem('participant_role') || '';
+        const user = localStorage.getItem('participant_name') || '';
+        let viewMode = 'current';      // 'current' | 'history'
+        let announcements = [];
+
+        // Reveal the organiser management link for organisers.
+        (function () {
+            const aliases = ['organiser', 'organizer', 'organisers', 'organizers'];
+            if (aliases.includes((role || '').trim().toLowerCase())) {
+                document.getElementById('manage-link').hidden = false;
+            }
+        })();
+
+        function esc(s) {
+            const d = document.createElement('div');
+            d.textContent = s == null ? '' : String(s);
+            return d.innerHTML;
+        }
+
+        function fmtDate(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (isNaN(d)) return '';
+            return d.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function load() {
+            const params = new URLSearchParams();
+            if (role) params.set('role', role);
+            if (user) params.set('user', user);
+            try {
+                const res = await fetch('/api/announcements?' + params.toString());
+                if (!res.ok) throw new Error('load failed');
+                announcements = await res.json();
+                document.getElementById('error-box').classList.remove('visible');
+                render();
+                // Mark all currently-shown announcements as read (delivery tracking).
+                markVisibleAsRead();
+            } catch (e) {
+                document.getElementById('error-box').classList.add('visible');
+            }
+        }
+
+        function markVisibleAsRead() {
+            if (!user) return;
+            announcements.forEach(a => {
+                if (!a.read_at) {
+                    fetch('/api/announcements/' + a.id + '/read', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ participant_name: user, role: role })
+                    }).catch(() => {});
+                }
+            });
+        }
+
+        function render() {
+            const list = document.getElementById('list');
+            const empty = document.getElementById('empty');
+            list.innerHTML = '';
+
+            // In "current" view, hide already-read non-critical items; history shows all.
+            let items = announcements;
+            if (viewMode === 'current') {
+                items = announcements.filter(a => !a.read_at || (a.ack_required && !a.acknowledged_at));
+            }
+
+            if (items.length === 0) {
+                empty.hidden = false;
+                empty.textContent = viewMode === 'history'
+                    ? 'No past announcements yet.'
+                    : 'No new announcements right now.';
+                return;
+            }
+            empty.hidden = true;
+
+            items.forEach(a => {
+                const critical = a.priority === 'Critical';
+                const priorityBadge = critical
+                    ? '<span class="badge badge-critical">Critical</span>'
+                    : '<span class="badge badge-normal">Normal</span>';
+                const unreadBadge = !a.read_at ? '<span class="badge badge-unread">New</span>' : '';
+
+                let ackRow = '';
+                if (a.ack_required) {
+                    if (a.acknowledged_at) {
+                        ackRow = `<div class="ack-row"><span class="ack-done">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                            Acknowledged on ${esc(fmtDate(a.acknowledged_at))}</span></div>`;
+                    } else {
+                        ackRow = `<div class="ack-row">
+                            <button class="btn-ack" data-id="${esc(a.id)}">Acknowledge</button>
+                            <span style="font-size:0.74rem;color:#8080a0;">This is a critical announcement.</span>
+                        </div>`;
+                    }
+                }
+
+                list.innerHTML += `
+                <div class="ann-card ${critical ? 'critical' : ''}">
+                    <div class="ann-badges">
+                        <span class="badge badge-cat">${esc(a.category)}</span>
+                        ${priorityBadge}
+                        ${unreadBadge}
+                    </div>
+                    <div class="ann-title">${esc(a.title)}</div>
+                    <div class="ann-message">${esc(a.message)}</div>
+                    <div class="ann-meta">Published ${esc(fmtDate(a.published_at))} · For ${esc(a.target_audience)}</div>
+                    ${ackRow}
+                </div>`;
+            });
+
+            list.querySelectorAll('.btn-ack').forEach(btn => {
+                btn.addEventListener('click', () => acknowledge(btn.dataset.id, btn));
+            });
+        }
+
+        async function acknowledge(id, btn) {
+            if (!user) { alert('Please complete onboarding first so we can record your acknowledgement.'); return; }
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            try {
+                const res = await fetch('/api/announcements/' + id + '/acknowledge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ participant_name: user, role: role })
+                });
+                if (!res.ok) throw new Error('ack failed');
+                const data = await res.json();
+                const target = announcements.find(a => a.id === id);
+                if (target) { target.acknowledged_at = data.acknowledged_at; target.read_at = target.read_at || data.acknowledged_at; }
+                render();
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Acknowledge';
+                alert('Could not record acknowledgement. Please try again.');
+            }
+        }
+
+        document.getElementById('view-current').addEventListener('click', () => {
+            viewMode = 'current';
+            document.getElementById('view-current').classList.add('active');
+            document.getElementById('view-history').classList.remove('active');
+            render();
+        });
+        document.getElementById('view-history').addEventListener('click', () => {
+            viewMode = 'history';
+            document.getElementById('view-history').classList.add('active');
+            document.getElementById('view-current').classList.remove('active');
+            render();
+        });
+
+        load();
+    </script>
+</body>
+</html>

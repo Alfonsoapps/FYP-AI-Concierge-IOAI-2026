@@ -5,6 +5,9 @@ class ChatRequest(BaseModel):
     """Incoming chat message from the user."""
 
     message: str = Field(..., min_length=1, max_length=2000, description="User message")
+    role: str | None = Field(
+        default=None, max_length=100, description="Optional participant role (for announcement context)"
+    )
 
 
 class ChatResponse(BaseModel):

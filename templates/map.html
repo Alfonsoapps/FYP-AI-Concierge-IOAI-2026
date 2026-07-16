@@ -95,7 +95,7 @@
         .map-btn:hover { background: rgba(16,185,129,0.18); border-color: #10b981; color: #e8e8f0; }
 
         .venue-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin-top 0.3s ease; margin-top: 0; }
-        .venue-details.open { max-height: 500px; margin-top: 16px; }
+        .venue-details.open { max-height: 650px; margin-top: 16px; }
         .venue-details-inner { padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
         .detail-section { margin-bottom: 14px; }
         .detail-section:last-child { margin-bottom: 0; }
@@ -124,6 +124,10 @@
             transition: all 0.2s ease; }
         .gmaps-btn:hover { background: rgba(16,185,129,0.18); border-color: #10b981; color: #e8e8f0; }
         .gmaps-btn svg { width: 12px; height: 12px; stroke: currentColor; }
+
+        .amenity-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .amenity-chip { font-size: 0.72rem; padding: 5px 11px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; color: #a0a0c0; }
 
         @media (max-width: 500px) { .transport-grid { grid-template-columns: 1fr; } }
     </style>
@@ -195,6 +199,17 @@
                             Open in Google Maps
                         </a>
                     </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Nearby Amenities</div>
+                        <div class="amenity-chips">
+                            <span class="amenity-chip">Starbucks</span>
+                            <span class="amenity-chip">Food Court</span>
+                            <span class="amenity-chip">ATM</span>
+                            <span class="amenity-chip">7-Eleven</span>
+                            <span class="amenity-chip">Pharmacy</span>
+                            <span class="amenity-chip">Currency Exchange</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -252,6 +267,17 @@
                             Open in Google Maps
                         </a>
                     </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Nearby Amenities</div>
+                        <div class="amenity-chips">
+                            <span class="amenity-chip">Cafeteria</span>
+                            <span class="amenity-chip">Subway</span>
+                            <span class="amenity-chip">ATM</span>
+                            <span class="amenity-chip">FairPrice Xpress</span>
+                            <span class="amenity-chip">Printing Services</span>
+                            <span class="amenity-chip">Student Lounge</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -308,6 +334,17 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             Open in Google Maps
                         </a>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Nearby Amenities</div>
+                        <div class="amenity-chips">
+                            <span class="amenity-chip">Canteen</span>
+                            <span class="amenity-chip">KOI Café</span>
+                            <span class="amenity-chip">ATM</span>
+                            <span class="amenity-chip">Changi City Point Mall</span>
+                            <span class="amenity-chip">7-Eleven</span>
+                            <span class="amenity-chip">Sports Facility</span>
+                        </div>
                     </div>
                 </div>
             </div>

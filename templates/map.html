@@ -111,6 +111,20 @@
             text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
         .transport-item-value { font-size: 0.78rem; color: #e8e8f0; line-height: 1.4; }
 
+        .route-card { margin-top: 10px; padding: 12px 14px; background: rgba(124,58,237,0.06);
+            border: 1px solid rgba(124,58,237,0.2); border-radius: 10px; }
+        .route-card-label { font-size: 0.65rem; font-weight: 600; color: #a78bfa;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+        .route-card-value { font-size: 0.8rem; color: #8080a0; line-height: 1.5; }
+
+        .gmaps-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+            padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(16,185,129,0.3);
+            background: rgba(16,185,129,0.08); color: #10b981; font-size: 0.78rem;
+            font-weight: 500; font-family: inherit; cursor: pointer; text-decoration: none;
+            transition: all 0.2s ease; }
+        .gmaps-btn:hover { background: rgba(16,185,129,0.18); border-color: #10b981; color: #e8e8f0; }
+        .gmaps-btn svg { width: 12px; height: 12px; stroke: currentColor; }
+
         @media (max-width: 500px) { .transport-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -160,18 +174,26 @@
                         <div class="detail-label">Getting There</div>
                         <div class="transport-grid">
                             <div class="transport-item">
-                                <div class="transport-item-label">MRT</div>
-                                <div class="transport-item-value">Bayfront (CE1/DT16)</div>
+                                <div class="transport-item-label">🚇 MRT</div>
+                                <div class="transport-item-value">Bayfront MRT (CCL / DTL)</div>
                             </div>
                             <div class="transport-item">
-                                <div class="transport-item-label">Bus</div>
+                                <div class="transport-item-label">🚌 Bus</div>
                                 <div class="transport-item-value">97, 106, 133, 502</div>
                             </div>
                             <div class="transport-item">
-                                <div class="transport-item-label">Walk</div>
-                                <div class="transport-item-value">3 min from MRT</div>
+                                <div class="transport-item-label">🚶 Walk</div>
+                                <div class="transport-item-value">3 mins from MRT</div>
                             </div>
                         </div>
+                        <div class="route-card">
+                            <div class="route-card-label">Recommended Route</div>
+                            <div class="route-card-value">Take the Downtown Line to Bayfront MRT Exit B. Follow signs to Marina Bay Sands Convention Centre.</div>
+                        </div>
+                        <a class="gmaps-btn" href="https://www.google.com/maps/search/?api=1&query=10+Bayfront+Avenue+Singapore" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            Open in Google Maps
+                        </a>
                     </div>
                 </div>
             </div>
@@ -209,18 +231,26 @@
                         <div class="detail-label">Getting There</div>
                         <div class="transport-grid">
                             <div class="transport-item">
-                                <div class="transport-item-label">MRT</div>
-                                <div class="transport-item-value">Kent Ridge (CC24)</div>
+                                <div class="transport-item-label">🚇 MRT</div>
+                                <div class="transport-item-value">Kent Ridge MRT (CCL)</div>
                             </div>
                             <div class="transport-item">
-                                <div class="transport-item-label">Bus</div>
+                                <div class="transport-item-label">🚌 Bus</div>
                                 <div class="transport-item-value">95, 96, 151</div>
                             </div>
                             <div class="transport-item">
-                                <div class="transport-item-label">Walk</div>
-                                <div class="transport-item-value">10 min from MRT</div>
+                                <div class="transport-item-label">🚶 Walk</div>
+                                <div class="transport-item-value">10 mins from MRT</div>
                             </div>
                         </div>
+                        <div class="route-card">
+                            <div class="route-card-label">Recommended Route</div>
+                            <div class="route-card-value">Take the Circle Line to Kent Ridge MRT Exit A. Walk along Kent Ridge Crescent towards the University Cultural Centre.</div>
+                        </div>
+                        <a class="gmaps-btn" href="https://www.google.com/maps/search/?api=1&query=21+Lower+Kent+Ridge+Road+Singapore" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            Open in Google Maps
+                        </a>
                     </div>
                 </div>
             </div>
@@ -258,18 +288,26 @@
                         <div class="detail-label">Getting There</div>
                         <div class="transport-grid">
                             <div class="transport-item">
-                                <div class="transport-item-label">MRT</div>
-                                <div class="transport-item-value">Upper Changi (DT34)</div>
+                                <div class="transport-item-label">🚇 MRT</div>
+                                <div class="transport-item-value">Upper Changi MRT (DTL)</div>
                             </div>
                             <div class="transport-item">
-                                <div class="transport-item-label">Bus</div>
+                                <div class="transport-item-label">🚌 Bus</div>
                                 <div class="transport-item-value">2, 5, 24, 34</div>
                             </div>
                             <div class="transport-item">
-                                <div class="transport-item-label">Walk</div>
-                                <div class="transport-item-value">5 min from MRT</div>
+                                <div class="transport-item-label">🚶 Walk</div>
+                                <div class="transport-item-value">5 mins from MRT</div>
                             </div>
                         </div>
+                        <div class="route-card">
+                            <div class="route-card-label">Recommended Route</div>
+                            <div class="route-card-value">Take the Downtown Line to Upper Changi MRT Exit A. Walk along Somapah Road towards the SUTD campus entrance.</div>
+                        </div>
+                        <a class="gmaps-btn" href="https://www.google.com/maps/search/?api=1&query=8+Somapah+Road+Singapore" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            Open in Google Maps
+                        </a>
                     </div>
                 </div>
             </div>

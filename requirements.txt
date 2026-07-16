@@ -10,6 +10,10 @@ edge-tts==7.2.8
 # RAG / Vector Database
 chromadb==0.5.23
 
+# Testing (dev only)
+pytest==8.4.1
+httpx==0.27.2
+
 # Future integrations (uncomment when ready)
 # langchain==0.3.0
 # langchain-nvidia-ai-endpoints==0.3.0

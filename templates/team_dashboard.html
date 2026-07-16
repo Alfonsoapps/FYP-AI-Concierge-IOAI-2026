@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Dashboard - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/team-safety.css">
+</head>
+<body>
+    <div class="page-header">
+        <h1>Team Dashboard</h1>
+        <p>Overview of your team's safety status.</p>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="stat-grid" id="stat-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Members</div>
+            <div class="stat-value" id="stat-total">–</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Checked In</div>
+            <div class="stat-value safe" id="stat-checked">–</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Needs Attention</div>
+            <div class="stat-value warn" id="stat-attention">–</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active SOS</div>
+            <div class="stat-value danger" id="stat-sos">–</div>
+        </div>
+    </div>
+
+    <!-- Recent alerts -->
+    <div class="section-label">Recent Alerts</div>
+    <div class="panel">
+        <table class="data-table" id="alerts-table">
+            <thead>
+                <tr><th>Participant</th><th>Status</th><th>Submitted</th></tr>
+            </thead>
+            <tbody id="alerts-body"></tbody>
+        </table>
+        <div class="empty-state" id="alerts-empty" hidden>No alerts yet. Your team is all clear.</div>
+    </div>
+
+    <!-- Team overview -->
+    <div class="section-label">Team Overview</div>
+    <div class="panel">
+        <div class="overview-list" id="overview-list"></div>
+        <div class="empty-state" id="overview-empty" hidden>No members assigned yet.</div>
+    </div>
+
+    {% include 'partials/notification_bell.html' %}
+    {% include 'partials/navbar.html' %}
+
+    <script src="/static/js/team-safety.js"></script>
+    <script>
+        function fmtTime(iso) { return TeamSafety.formatTime(iso); }
+
+        function renderDashboard(data) {
+            const s = data.stats;
+            document.getElementById('stat-total').textContent = s.total_members;
+            document.getElementById('stat-checked').textContent = s.checked_in;
+            document.getElementById('stat-attention').textContent = s.requiring_attention;
+            document.getElementById('stat-sos').textContent = s.active_sos;
+
+            // Recent alerts
+            const body = document.getElementById('alerts-body');
+            const table = document.getElementById('alerts-table');
+            const empty = document.getElementById('alerts-empty');
+            body.innerHTML = '';
+            if (!data.recent_alerts.length) {
+                table.hidden = true; empty.hidden = false;
+            } else {
+                table.hidden = false; empty.hidden = true;
+                data.recent_alerts.forEach(a => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        `<td>${TeamSafety.escape(a.participant_name)}</td>` +
+                        `<td>${TeamSafety.statusBadge(a.status)}</td>` +
+                        `<td class="muted">${fmtTime(a.submitted_at)}</td>`;
+                    body.appendChild(tr);
+                });
+            }
+
+            // Team overview
+            const list = document.getElementById('overview-list');
+            const oEmpty = document.getElementById('overview-empty');
+            list.innerHTML = '';
+            if (!data.team_overview.length) {
+                oEmpty.hidden = false;
+            } else {
+                oEmpty.hidden = true;
+                data.team_overview.forEach(m => {
+                    const row = document.createElement('div');
+                    row.className = 'overview-row';
+                    row.innerHTML =
+                        `<span class="overview-name">${TeamSafety.escape(m.name)}</span>` +
+                        `${TeamSafety.statusBadge(m.status)}`;
+                    list.appendChild(row);
+                });
+            }
+        }
+
+        function loadDashboard() {
+            TeamSafety.getJSON('/api/team/dashboard')
+                .then(renderDashboard)
+                .catch(() => {});
+        }
+
+        TeamSafety.requireLeader();
+        loadDashboard();
+        // Lightweight polling keeps the dashboard fresh without a manual reload.
+        setInterval(loadDashboard, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Management - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/team-safety.css">
+</head>
+<body>
+    <div class="page-header">
+        <h1>Team Management</h1>
+        <p>Monitor each participant assigned to you.</p>
+    </div>
+
+    <div class="filters" id="filters">
+        <button class="filter-btn active" data-status="all">All</button>
+        <button class="filter-btn" data-status="Safe">Safe</button>
+        <button class="filter-btn" data-status="Pending Check-in">Pending Check-in</button>
+        <button class="filter-btn" data-status="SOS Active">SOS Active</button>
+    </div>
+
+    <div class="member-list" id="member-list"></div>
+    <div class="empty-state" id="member-empty" hidden>No members match this filter.</div>
+
+    {% include 'partials/notification_bell.html' %}
+    {% include 'partials/navbar.html' %}
+
+    <script src="/static/js/team-safety.js"></script>
+    <script>
+        let activeStatus = 'all';
+
+        function renderMembers(members) {
+            const list = document.getElementById('member-list');
+            const empty = document.getElementById('member-empty');
+            list.innerHTML = '';
+
+            if (!members.length) { empty.hidden = false; return; }
+            empty.hidden = true;
+
+            members.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                const locationHtml = m.location
+                    ? `<span class="member-field-value">${TeamSafety.escape(m.location)}</span>`
+                    : `<span class="member-field-value muted">Location unavailable</span>`;
+                const checkInHtml = m.last_check_in
+                    ? `<span class="member-field-value">${TeamSafety.formatTime(m.last_check_in)}</span>`
+                    : `<span class="member-field-value muted">No check-in recorded</span>`;
+
+                card.innerHTML =
+                    `<div class="member-top">
+                        <span class="member-name">${TeamSafety.escape(m.name)}</span>
+                        ${TeamSafety.statusBadge(m.status)}
+                    </div>
+                    <div class="member-grid">
+                        <div class="member-field">
+                            <span class="member-field-label">Country</span>
+                            <span class="member-field-value">${TeamSafety.escape(m.country)}</span>
+                        </div>
+                        <div class="member-field">
+                            <span class="member-field-label">Team</span>
+                            <span class="member-field-value">${TeamSafety.escape(m.team_name)}</span>
+                        </div>
+                        <div class="member-field">
+                            <span class="member-field-label">Last Check-in</span>
+                            ${checkInHtml}
+                        </div>
+                        <div class="member-field">
+                            <span class="member-field-label">Location</span>
+                            ${locationHtml}
+                        </div>
+                    </div>`;
+                list.appendChild(card);
+            });
+        }
+
+        function loadMembers() {
+            let url = '/api/team/members';
+            if (activeStatus !== 'all') {
+                url += '?status=' + encodeURIComponent(activeStatus);
+            }
+            TeamSafety.getJSON(url)
+                .then(data => renderMembers(data.members))
+                .catch(() => {});
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeStatus = btn.dataset.status;
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadMembers();
+            });
+        });
+
+        TeamSafety.requireLeader();
+        loadMembers();
+        setInterval(loadMembers, 5000);
+    </script>
+</body>
+</html>

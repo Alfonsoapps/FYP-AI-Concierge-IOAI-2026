@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safety - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/team-safety.css">
+    <style>
+        .safety-panel { max-width: 480px; margin: 0 auto 16px; }
+        .safety-card {
+            background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
+            border-radius: 16px; padding: 24px; margin-bottom: 16px;
+        }
+        .safety-card h2 { font-size: 1rem; font-weight: 600; color: #e8e8f0; margin-bottom: 8px; }
+        .safety-card p { font-size: 0.84rem; color: #8080a0; line-height: 1.5; margin-bottom: 16px; }
+        .safety-input {
+            width: 100%; padding: 12px 14px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e8e8f0;
+            font-size: 0.9rem; font-family: inherit; outline: none; margin-bottom: 12px;
+        }
+        .safety-input:focus { border-color: rgba(124,58,237,0.5); }
+        .safety-input::placeholder { color: #505070; }
+        .btn-full { width: 100%; padding: 14px; font-size: 0.92rem; font-weight: 600; border-radius: 12px; }
+        .btn-sos {
+            background: linear-gradient(135deg, #ef4444, #dc2626); border: none; color: #fff;
+            width: 100%; padding: 16px; border-radius: 12px; font-size: 1rem; font-weight: 700;
+            font-family: inherit; cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn-sos:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(239,68,68,0.4); }
+        .btn-checkin {
+            background: linear-gradient(135deg, #10b981, #059669); border: none; color: #fff;
+            width: 100%; padding: 14px; border-radius: 12px; font-size: 0.95rem; font-weight: 600;
+            font-family: inherit; cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn-checkin:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,0.4); }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1>Safety</h1>
+        <p>Check in to let your team leader know you're safe, or send an emergency alert.</p>
+    </div>
+
+    <div class="safety-panel">
+        <div class="safety-card">
+            <h2>I'm Safe</h2>
+            <p>Send a check-in with your current location (optional).</p>
+            <input class="safety-input" id="checkin-location" type="text" placeholder="Your location (optional)">
+            <button class="btn-checkin" id="btn-checkin">Check In</button>
+        </div>
+
+        <div class="safety-card">
+            <h2>Emergency SOS</h2>
+            <p>This alerts your team leader immediately. Only use in a real emergency.</p>
+            <input class="safety-input" id="sos-location" type="text" placeholder="Your location (optional)">
+            <input class="safety-input" id="sos-message" type="text" placeholder="What's happening? (optional)">
+            <button class="btn-sos" id="btn-sos">Send SOS Alert</button>
+        </div>
+    </div>
+
+    {% include 'partials/notification_bell.html' %}
+    {% include 'partials/navbar.html' %}
+
+    <script src="/static/js/team-safety.js"></script>
+    <script>
+        function participantName() {
+            const n = TeamSafety.name();
+            if (n) return n;
+            return prompt('Enter your name to identify your check-in:') || '';
+        }
+
+        document.getElementById('btn-checkin').addEventListener('click', () => {
+            const name = participantName();
+            if (!name) return;
+            TeamSafety.sendJSON('/api/team/check-in', 'POST', {
+                participant_name: name,
+                location: document.getElementById('checkin-location').value.trim() || null,
+            })
+            .then(() => TeamSafety.toast('Checked in. Your team leader has been updated.', 'success'))
+            .catch(err => TeamSafety.toast(err.message, 'error'));
+        });
+
+        document.getElementById('btn-sos').addEventListener('click', () => {
+            const name = participantName();
+            if (!name) return;
+            if (!confirm('Send an emergency SOS alert to your team leader?')) return;
+            TeamSafety.sendJSON('/api/team/sos', 'POST', {
+                participant_name: name,
+                location: document.getElementById('sos-location').value.trim() || null,
+                message: document.getElementById('sos-message').value.trim() || null,
+            })
+            .then(() => TeamSafety.toast('SOS sent. Help is on the way.', 'success'))
+            .catch(err => TeamSafety.toast(err.message, 'error'));
+        });
+    </script>
+</body>
+</html>

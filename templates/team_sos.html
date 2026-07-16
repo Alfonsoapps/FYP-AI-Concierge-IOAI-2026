@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Management - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/team-safety.css">
+</head>
+<body>
+    <div class="page-header">
+        <h1>SOS Management</h1>
+        <p>Review and respond to emergency alerts from your team.</p>
+    </div>
+
+    <div class="filters" id="view-filters">
+        <button class="filter-btn active" data-view="active">Active</button>
+        <button class="filter-btn" data-view="all">All</button>
+        <button class="filter-btn" data-view="history">History</button>
+    </div>
+
+    <div class="alert-list" id="alert-list"></div>
+    <div class="empty-state" id="alert-empty" hidden>No alerts to show.</div>
+
+    {% include 'partials/notification_bell.html' %}
+    {% include 'partials/navbar.html' %}
+
+    <script src="/static/js/team-safety.js"></script>
+    <script>
+        let activeView = 'active';
+        const ACTIVE = ['New', 'In Progress'];
+
+        const pinSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+        const clockSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`;
+
+        function alertCard(a) {
+            const isActive = ACTIVE.includes(a.status);
+            const card = document.createElement('div');
+            card.className = 'alert-card ' + (isActive ? 'active' : 'resolved');
+
+            let actions = '';
+            if (a.status === 'New') {
+                actions =
+                    `<button class="btn" onclick="setStatus('${a.id}', 'In Progress')">Mark In Progress</button>
+                     <button class="btn btn-success" onclick="setStatus('${a.id}', 'Resolved')">Resolve</button>`;
+            } else if (a.status === 'In Progress') {
+                actions =
+                    `<button class="btn btn-success" onclick="setStatus('${a.id}', 'Resolved')">Resolve</button>`;
+            }
+
+            const locationLine = a.location
+                ? `<div class="alert-detail">${pinSvg}<span>${TeamSafety.escape(a.location)}</span></div>`
+                : `<div class="alert-detail">${pinSvg}<span>Location unavailable</span></div>`;
+
+            const messageHtml = a.message
+                ? `<div class="alert-message">${TeamSafety.escape(a.message)}</div>` : '';
+
+            card.innerHTML =
+                `<div class="alert-top">
+                    <span class="alert-name">${TeamSafety.escape(a.participant_name)}</span>
+                    ${TeamSafety.statusBadge(a.status)}
+                </div>
+                <div class="alert-meta">
+                    <div class="alert-detail">${clockSvg}<span>Submitted ${TeamSafety.formatTime(a.submitted_at)}</span></div>
+                    ${locationLine}
+                    <div class="alert-detail">${pinSvg}<span>${TeamSafety.escape(a.team_name)} · ${TeamSafety.escape(a.country)}</span></div>
+                </div>
+                ${messageHtml}
+                ${actions ? `<div class="btn-row">${actions}</div>` : ''}`;
+            return card;
+        }
+
+        function renderAlerts(alerts) {
+            const list = document.getElementById('alert-list');
+            const empty = document.getElementById('alert-empty');
+            list.innerHTML = '';
+            if (!alerts.length) { empty.hidden = false; return; }
+            empty.hidden = true;
+            alerts.forEach(a => list.appendChild(alertCard(a)));
+        }
+
+        function loadAlerts() {
+            let url = '/api/team/alerts';
+            if (activeView === 'history') url = '/api/team/alerts/history';
+            TeamSafety.getJSON(url)
+                .then(data => {
+                    let alerts = data.alerts;
+                    if (activeView === 'active') {
+                        alerts = alerts.filter(a => ACTIVE.includes(a.status));
+                    }
+                    renderAlerts(alerts);
+                })
+                .catch(() => {});
+        }
+
+        function setStatus(id, status) {
+            TeamSafety.sendJSON('/api/team/alerts/' + id + '/status', 'PATCH', { status: status })
+                .then(() => {
+                    TeamSafety.toast('Alert marked ' + status, 'success');
+                    loadAlerts();
+                })
+                .catch(err => TeamSafety.toast(err.message, 'error'));
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeView = btn.dataset.view;
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadAlerts();
+            });
+        });
+
+        TeamSafety.requireLeader();
+        loadAlerts();
+        setInterval(loadAlerts, 5000);
+    </script>
+</body>
+</html>

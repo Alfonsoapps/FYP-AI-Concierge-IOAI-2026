@@ -24,10 +24,12 @@ node_modules/
 # Distribution / Build
 dist/
 build/
+.next/
 *.egg-info/
 
-# ChromaDB (future)
+# ChromaDB runtime data
 chroma_data/
+chroma_db/
 
 # Announcements module runtime data (SQLite)
 app/data/

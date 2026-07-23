@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+websockets
+langchain
+langchain-community
+langchain-nvidia-ai-endpoints
+chromadb
+tiktoken
+python-dotenv
+pyttsx3

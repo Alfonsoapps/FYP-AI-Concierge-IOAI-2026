@@ -150,6 +150,12 @@ async def safety_page(request: Request):
     )
 
 
+@app.get("/team")
+async def team_page():
+    """Team / Delegation page."""
+    return FileResponse(_tpl("team.html"))
+
+
 @app.get("/onboarding")
 async def onboarding_page():
     """Onboarding page - collect participant info."""

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <script>
+        (function() {
+            const n = localStorage.getItem('participant_name');
+            const r = localStorage.getItem('participant_role');
+            if (!n || !r) { window.location.href = '/onboarding'; }
+        })();
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased; padding: 32px 24px 100px;
+        }
+        .team-container { max-width: 600px; margin: 0 auto; }
+
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 {
+            font-size: 1.6rem; font-weight: 700; margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { font-size: 0.88rem; color: #8080a0; }
+
+        /* Access Denied */
+        .access-denied {
+            text-align: center; padding: 60px 20px;
+        }
+        .access-denied-icon { font-size: 3rem; margin-bottom: 16px; }
+        .access-denied h2 { font-size: 1.2rem; margin-bottom: 10px; color: #e8e8f0; }
+        .access-denied p { font-size: 0.9rem; color: #8080a0; }
+
+        /* Cards */
+        .team-card {
+            background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
+            border-radius: 14px; padding: 20px; margin-bottom: 16px;
+        }
+        .team-card-title {
+            font-size: 0.72rem; font-weight: 600; color: #a0a0c0;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px;
+        }
+
+        /* Delegation Header */
+        .delegation-header { text-align: center; margin-bottom: 24px; }
+        .delegation-flag { font-size: 2.5rem; margin-bottom: 8px; }
+        .delegation-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
+        .delegation-meta { font-size: 0.82rem; color: #8080a0; }
+        .delegation-meta span { margin: 0 8px; }
+
+        /* Participant List */
+        .participant-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .participant-item:last-child { border-bottom: none; }
+        .participant-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.3);
+            display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+        }
+        .participant-info { flex: 1; }
+        .participant-name { font-size: 0.88rem; font-weight: 600; color: #e8e8f0; }
+        .participant-role { font-size: 0.74rem; color: #8080a0; }
+        .status-badge {
+            font-size: 0.65rem; font-weight: 600; padding: 3px 9px;
+            border-radius: 20px;
+        }
+        .status-present { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+        .status-busy { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); color: #fb923c; }
+        .status-offline { background: rgba(128,128,160,0.1); border: 1px solid rgba(128,128,160,0.2); color: #8080a0; }
+
+        /* Schedule items */
+        .schedule-item {
+            padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .schedule-item:last-child { border-bottom: none; }
+        .schedule-item-title { font-size: 0.88rem; font-weight: 600; color: #e8e8f0; margin-bottom: 4px; }
+        .schedule-item-meta { font-size: 0.78rem; color: #8080a0; }
+
+        /* Announcement items */
+        .announcement-item {
+            padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .announcement-item:last-child { border-bottom: none; }
+        .announcement-title { font-size: 0.88rem; font-weight: 600; color: #e8e8f0; margin-bottom: 4px; }
+        .announcement-body { font-size: 0.8rem; color: #8080a0; line-height: 1.5; }
+        .announcement-time { font-size: 0.7rem; color: #505070; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="team-container">
+        <!-- Content will be injected by JS based on role -->
+        <div id="team-content"></div>
+    </div>
+
+    <script>
+        const role = localStorage.getItem('participant_role') || '';
+        const name = localStorage.getItem('participant_name') || 'Participant';
+        const country = localStorage.getItem('participant_country') || 'Singapore';
+
+        const content = document.getElementById('team-content');
+
+        if (role !== 'Team Leader') {
+            // Show access denied
+            content.innerHTML = `
+                <div class="page-header">
+                    <h1>Team</h1>
+                </div>
+                <div class="access-denied">
+                    <div class="access-denied-icon">🔒</div>
+                    <h2>Team Leader Access Only</h2>
+                    <p>This page is available only for Team Leaders.</p>
+                </div>
+            `;
+        } else {
+            // Show full team page
+            content.innerHTML = `
+                <div class="page-header">
+                    <h1>Team</h1>
+                    <p>Manage your delegation and team members.</p>
+                </div>
+
+                <!-- Delegation Header -->
+                <div class="delegation-header">
+                    <div class="delegation-flag">🏳️</div>
+                    <div class="delegation-name">${country} Delegation</div>
+                    <div class="delegation-meta">
+                        <span>Team Leader: ${name}</span>
+                        <span>•</span>
+                        <span>4 Participants</span>
+                    </div>
+                </div>
+
+                <!-- Participants -->
+                <div class="team-card">
+                    <div class="team-card-title">Team Members</div>
+                    <div class="participant-item">
+                        <div class="participant-avatar">👤</div>
+                        <div class="participant-info">
+                            <div class="participant-name">${name}</div>
+                            <div class="participant-role">Team Leader</div>
+                        </div>
+                        <span class="status-badge status-present">Present</span>
+                    </div>
+                    <div class="participant-item">
+                        <div class="participant-avatar">👤</div>
+                        <div class="participant-info">
+                            <div class="participant-name">Alex Chen</div>
+                            <div class="participant-role">Student Participant</div>
+                        </div>
+                        <span class="status-badge status-present">Present</span>
+                    </div>
+                    <div class="participant-item">
+                        <div class="participant-avatar">👤</div>
+                        <div class="participant-info">
+                            <div class="participant-name">Sarah Kim</div>
+                            <div class="participant-role">Student Participant</div>
+                        </div>
+                        <span class="status-badge status-busy">Busy</span>
+                    </div>
+                    <div class="participant-item">
+                        <div class="participant-avatar">👤</div>
+                        <div class="participant-info">
+                            <div class="participant-name">Raj Patel</div>
+                            <div class="participant-role">Student Participant</div>
+                        </div>
+                        <span class="status-badge status-offline">Offline</span>
+                    </div>
+                </div>
+
+                <!-- Delegation Schedule -->
+                <div class="team-card">
+                    <div class="team-card-title">Upcoming Delegation Activities</div>
+                    <div class="schedule-item">
+                        <div class="schedule-item-title">Team Leader Briefing</div>
+                        <div class="schedule-item-meta">🕐 Day 1 · 11:00 AM – 12:00 PM · Marina Bay Sands</div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-item-title">Team Networking Session</div>
+                        <div class="schedule-item-meta">🕐 Day 1 · 6:00 PM – 7:30 PM · SUTD</div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-item-title">AI Ethics Workshop</div>
+                        <div class="schedule-item-meta">🕐 Day 2 · 2:00 PM – 4:00 PM · NUS</div>
+                    </div>
+                </div>
+
+                <!-- Delegation Announcements -->
+                <div class="team-card">
+                    <div class="team-card-title">Delegation Announcements</div>
+                    <div class="announcement-item">
+                        <div class="announcement-title">Team Photo Session</div>
+                        <div class="announcement-body">All delegation members please gather at Marina Bay Sands lobby at 8:30 AM for the official team photo.</div>
+                        <div class="announcement-time">2 hours ago</div>
+                    </div>
+                    <div class="announcement-item">
+                        <div class="announcement-title">Uniform Reminder</div>
+                        <div class="announcement-body">Please wear official IOAI delegation uniforms for the Opening Ceremony tomorrow.</div>
+                        <div class="announcement-time">Yesterday</div>
+                    </div>
+                    <div class="announcement-item">
+                        <div class="announcement-title">Welcome Dinner Location</div>
+                        <div class="announcement-body">The welcome dinner will be at Level 57, Marina Bay Sands. Smart casual attire.</div>
+                        <div class="announcement-time">2 days ago</div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+
+    <nav class="bottom-nav">
+        <a href="/" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Home</span>
+        </a>
+        <a href="/map" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+            <span>Map</span>
+        </a>
+        <a href="/guide" class="nav-item nav-item-center">
+            <div class="nav-center-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div>
+            <span>Guide</span>
+        </a>
+        <a href="/schedule" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Schedule</span>
+        </a>
+        <a href="/profile" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>Profile</span>
+        </a>
+    </nav>
+</body>
+</html>

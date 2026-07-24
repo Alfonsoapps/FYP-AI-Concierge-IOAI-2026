@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - IOAI 2027</title>
     <link rel="stylesheet" href="/static/css/navbar.css">
+    <script>
+        // Route protection: redirect to onboarding if not signed in
+        (function() {
+            const n = localStorage.getItem('participant_name');
+            const r = localStorage.getItem('participant_role');
+            if (!n || !r) { window.location.href = '/onboarding'; }
+        })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -69,6 +77,34 @@
         }
         .signout-btn:hover { background: rgba(239,68,68,0.2); border-color: #ef4444; }
         .signout-btn svg { width: 16px; height: 16px; stroke: currentColor; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-card {
+            background: #14142a; border: 1px solid rgba(124,58,237,0.25);
+            border-radius: 16px; padding: 28px 24px; width: 90%; max-width: 340px;
+            text-align: center;
+        }
+        .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+        .modal-message { font-size: 0.88rem; color: #8080a0; margin-bottom: 24px; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-btn {
+            flex: 1; padding: 12px; border-radius: 10px; font-size: 0.88rem;
+            font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s ease;
+        }
+        .modal-btn-cancel {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #a0a0c0;
+        }
+        .modal-btn-cancel:hover { background: rgba(255,255,255,0.1); }
+        .modal-btn-confirm {
+            background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #f87171;
+        }
+        .modal-btn-confirm:hover { background: rgba(239,68,68,0.3); }
     </style>
 </head>
 <body>
@@ -137,10 +173,22 @@
         </div>
 
         <!-- Sign Out Button -->
-        <button class="signout-btn" onclick="alert('Logout functionality coming soon.')">
+        <button class="signout-btn" onclick="showSignOutModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Sign Out
         </button>
+    </div>
+
+    <!-- Sign Out Confirmation Modal -->
+    <div class="modal-overlay" id="signout-modal">
+        <div class="modal-card">
+            <div class="modal-title">Sign Out</div>
+            <div class="modal-message">Are you sure you want to sign out?</div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="hideSignOutModal()">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" onclick="performSignOut()">Sign Out</button>
+            </div>
+        </div>
     </div>
 
     {% include 'partials/navbar.html' %}
@@ -181,6 +229,29 @@
                 document.getElementById('profile-id').textContent = 'IOAI-2027-' + hash;
             }
         })();
+
+        // Sign Out Modal
+        function showSignOutModal() {
+            document.getElementById('signout-modal').classList.add('visible');
+        }
+
+        function hideSignOutModal() {
+            document.getElementById('signout-modal').classList.remove('visible');
+        }
+
+        function performSignOut() {
+            // Clear all participant data from localStorage
+            localStorage.removeItem('participant_name');
+            localStorage.removeItem('participant_role');
+            localStorage.removeItem('participant_country');
+            localStorage.removeItem('participant_language');
+            localStorage.removeItem('avatar_outfit');
+            localStorage.removeItem('avatar_eyes');
+            localStorage.removeItem('avatar_accessories');
+
+            // Redirect to onboarding
+            window.location.href = '/onboarding';
+        }
     </script>
 </body>
 </html>

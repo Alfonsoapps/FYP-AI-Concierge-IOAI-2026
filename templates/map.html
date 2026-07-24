@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Venue Directory - IOAI 2027</title>
     <link rel="stylesheet" href="/static/css/navbar.css">
+    <script>
+        (function() {
+            const n = localStorage.getItem('participant_name');
+            const r = localStorage.getItem('participant_role');
+            if (!n || !r) { window.location.href = '/onboarding'; }
+        })();
+    </script>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>

@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedule - IOAI 2027</title>
     <link rel="stylesheet" href="/static/css/navbar.css">
+    <script>
+        (function() {
+            const n = localStorage.getItem('participant_name');
+            const r = localStorage.getItem('participant_role');
+            if (!n || !r) { window.location.href = '/onboarding'; }
+        })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {

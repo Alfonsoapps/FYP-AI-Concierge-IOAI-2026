@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome Guide - IOAI 2027 Singapore</title>
+    <script>
+        (function() {
+            const n = localStorage.getItem('participant_name');
+            const r = localStorage.getItem('participant_role');
+            if (!n || !r) { window.location.href = '/onboarding'; }
+        })();
+    </script>
 
     <!-- Live2D Dependencies -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>

@@ -9,21 +9,178 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: #0c0c1d;
-            color: #e8e8f0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding-bottom: 80px;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased; padding: 32px 24px 100px;
         }
-        h1 { font-size: 1.8rem; color: #8080a0; }
+
+        .profile-container { max-width: 500px; margin: 0 auto; }
+
+        /* Profile Header */
+        .profile-header {
+            text-align: center; margin-bottom: 28px;
+        }
+        .profile-avatar {
+            width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 14px;
+            background: rgba(124,58,237,0.15); border: 3px solid rgba(124,58,237,0.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+        }
+        .profile-name {
+            font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;
+        }
+        .profile-role-badge {
+            display: inline-block; font-size: 0.72rem; font-weight: 600;
+            padding: 4px 14px; border-radius: 20px; margin-bottom: 6px;
+        }
+        .role-student { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); color: #a78bfa; }
+        .role-team-leader { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+        .role-observer { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; }
+        .role-volunteer { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); color: #fb923c; }
+        .role-organiser { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+
+        .profile-delegation {
+            font-size: 0.84rem; color: #8080a0;
+        }
+
+        /* Cards */
+        .profile-card {
+            background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
+            border-radius: 14px; padding: 20px; margin-bottom: 16px;
+        }
+        .profile-card-title {
+            font-size: 0.72rem; font-weight: 600; color: #a0a0c0;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px;
+        }
+        .profile-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .profile-row:last-child { border-bottom: none; }
+        .profile-row-label { font-size: 0.84rem; color: #8080a0; }
+        .profile-row-value { font-size: 0.84rem; color: #e8e8f0; font-weight: 500; text-align: right; }
+
+        /* Sign Out Button */
+        .signout-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 14px; margin-top: 12px;
+            background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 12px; color: #f87171; font-size: 0.9rem; font-weight: 600;
+            font-family: inherit; cursor: pointer; transition: all 0.2s ease;
+        }
+        .signout-btn:hover { background: rgba(239,68,68,0.2); border-color: #ef4444; }
+        .signout-btn svg { width: 16px; height: 16px; stroke: currentColor; }
     </style>
 </head>
 <body>
-    <h1>Profile Page - Coming Soon</h1>
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-avatar" id="avatar-display">👤</div>
+            <div class="profile-name" id="profile-name">Participant</div>
+            <div class="profile-role-badge role-student" id="role-badge">Student</div>
+            <div class="profile-delegation" id="profile-delegation">Singapore Delegation</div>
+        </div>
 
-    {% include 'partials/notification_bell.html' %}
+        <!-- Information Card -->
+        <div class="profile-card">
+            <div class="profile-card-title">Participant Information</div>
+            <div class="profile-row">
+                <span class="profile-row-label">Participant ID</span>
+                <span class="profile-row-value" id="profile-id">IOAI-2027-0001</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-row-label">Role</span>
+                <span class="profile-row-value" id="profile-role">Student Participant</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-row-label">Delegation</span>
+                <span class="profile-row-value" id="profile-country">Singapore</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-row-label">Email</span>
+                <span class="profile-row-value" id="profile-email">participant@ioai2027.org</span>
+            </div>
+        </div>
+
+        <!-- Preferences Card -->
+        <div class="profile-card">
+            <div class="profile-card-title">Preferences</div>
+            <div class="profile-row">
+                <span class="profile-row-label">Language</span>
+                <span class="profile-row-value" id="pref-language">English</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-row-label">Notifications</span>
+                <span class="profile-row-value">Enabled</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-row-label">Accessibility</span>
+                <span class="profile-row-value">Default</span>
+            </div>
+        </div>
+
+        <!-- About Card -->
+        <div class="profile-card">
+            <div class="profile-card-title">About</div>
+            <div class="profile-row">
+                <span class="profile-row-label">Application Version</span>
+                <span class="profile-row-value">1.0.0</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-row-label">Privacy Policy</span>
+                <span class="profile-row-value" style="color:#a78bfa;">View →</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-row-label">Terms of Use</span>
+                <span class="profile-row-value" style="color:#a78bfa;">View →</span>
+            </div>
+        </div>
+
+        <!-- Sign Out Button -->
+        <button class="signout-btn" onclick="alert('Logout functionality coming soon.')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+        </button>
+    </div>
+
     {% include 'partials/navbar.html' %}
+
+    <script>
+        // Populate profile from localStorage (onboarding data)
+        (function() {
+            const name = localStorage.getItem('participant_name');
+            const role = localStorage.getItem('participant_role');
+            const country = localStorage.getItem('participant_country');
+            const language = localStorage.getItem('participant_language');
+
+            if (name) document.getElementById('profile-name').textContent = name;
+            if (country) {
+                document.getElementById('profile-delegation').textContent = country + ' Delegation';
+                document.getElementById('profile-country').textContent = country;
+            }
+            if (language) document.getElementById('pref-language').textContent = language;
+
+            if (role) {
+                document.getElementById('profile-role').textContent = role;
+                const badge = document.getElementById('role-badge');
+                badge.textContent = role;
+
+                // Apply role-specific colour
+                badge.className = 'profile-role-badge';
+                if (role.toLowerCase().includes('student')) badge.classList.add('role-student');
+                else if (role.toLowerCase().includes('leader')) badge.classList.add('role-team-leader');
+                else if (role.toLowerCase().includes('observer')) badge.classList.add('role-observer');
+                else if (role.toLowerCase().includes('volunteer')) badge.classList.add('role-volunteer');
+                else if (role.toLowerCase().includes('organiser')) badge.classList.add('role-organiser');
+                else badge.classList.add('role-student');
+            }
+
+            // Generate a pseudo participant ID from name
+            if (name) {
+                const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 9000 + 1000;
+                document.getElementById('profile-id').textContent = 'IOAI-2027-' + hash;
+            }
+        })();
+    </script>
 </body>
 </html>

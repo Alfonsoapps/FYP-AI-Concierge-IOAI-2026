@@ -21,40 +21,113 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: #0c0c1d;
-            color: #e8e8f0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            -webkit-font-smoothing: antialiased;
-            padding-bottom: 80px;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased; padding: 32px 24px 100px;
         }
-        .container {
-            text-align: center;
-            padding: 40px;
-        }
-        h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            margin-bottom: 16px;
+        .home-container { max-width: 500px; margin: 0 auto; }
+
+        /* Greeting */
+        .greeting { margin-bottom: 28px; }
+        .greeting h1 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;
             background: linear-gradient(135deg, #7c3aed, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
-        p {
-            font-size: 1.1rem;
-            color: #8080a0;
+        .greeting p { font-size: 0.88rem; color: #8080a0; }
+
+        .role-badge {
+            display: inline-block; font-size: 0.7rem; font-weight: 600;
+            padding: 4px 12px; border-radius: 20px; margin-top: 8px;
         }
+        .role-student { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); color: #a78bfa; }
+        .role-team-leader { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+        .role-observer { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; }
+        .role-volunteer { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); color: #fb923c; }
+        .role-organiser { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+
+        /* Cards */
+        .home-card {
+            background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15);
+            border-radius: 14px; padding: 20px; margin-bottom: 16px;
+        }
+        .home-card-title {
+            font-size: 0.72rem; font-weight: 600; color: #a0a0c0;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px;
+        }
+
+        .activity-title { font-size: 1rem; font-weight: 600; color: #e8e8f0; margin-bottom: 8px; }
+        .activity-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+        .activity-meta span { font-size: 0.82rem; color: #8080a0; }
+
+        .announcement-title { font-size: 0.95rem; font-weight: 600; color: #e8e8f0; margin-bottom: 6px; }
+        .announcement-desc { font-size: 0.84rem; color: #8080a0; line-height: 1.5; margin-bottom: 14px; }
+
+        .card-btn {
+            display: inline-block; padding: 9px 18px; border-radius: 8px;
+            border: 1px solid rgba(124,58,237,0.3); background: rgba(124,58,237,0.08);
+            color: #a78bfa; font-size: 0.78rem; font-weight: 500;
+            text-decoration: none; transition: all 0.2s ease;
+        }
+        .card-btn:hover { background: rgba(124,58,237,0.18); border-color: #7c3aed; color: #e8e8f0; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome to IOAI 2027 Singapore</h1>
-        <p>This is the participant companion platform.</p>
+    <div class="home-container">
+        <!-- Personalised Greeting -->
+        <div class="greeting">
+            <h1 id="greeting-text">Welcome back</h1>
+            <p>IOAI 2027 Singapore · Participant Companion</p>
+            <span class="role-badge role-student" id="role-badge">Student</span>
+        </div>
+
+        <!-- Next Activity Card -->
+        <div class="home-card">
+            <div class="home-card-title">Next Activity</div>
+            <div class="activity-title" id="next-event-title">Opening Ceremony</div>
+            <div class="activity-meta">
+                <span id="next-event-time">🕐 9:00 AM – 10:00 AM</span>
+                <span id="next-event-venue">📍 Marina Bay Sands</span>
+            </div>
+            <a class="card-btn" href="/schedule">View Schedule</a>
+        </div>
+
+        <!-- Latest Announcement Card -->
+        <div class="home-card">
+            <div class="home-card-title">Latest Announcement</div>
+            <div class="announcement-title" id="announce-title">Welcome to IOAI 2027!</div>
+            <div class="announcement-desc" id="announce-desc">All participants are reminded to collect their registration packs from Marina Bay Sands Convention Centre, Level 1.</div>
+            <a class="card-btn" href="/announcements">View All</a>
+        </div>
     </div>
 
     {% include 'partials/notification_bell.html' %}
     {% include 'partials/navbar.html' %}
+
+    <script>
+        (function() {
+            const name = localStorage.getItem('participant_name') || 'Participant';
+            const role = localStorage.getItem('participant_role') || '';
+
+            // Personalised greeting based on time of day
+            const hour = new Date().getHours();
+            let greetWord = 'Welcome back';
+            if (hour < 12) greetWord = 'Good Morning';
+            else if (hour < 17) greetWord = 'Good Afternoon';
+            else greetWord = 'Good Evening';
+
+            document.getElementById('greeting-text').textContent = greetWord + ', ' + name;
+
+            // Role badge
+            const badge = document.getElementById('role-badge');
+            badge.textContent = role || 'Participant';
+            badge.className = 'role-badge';
+            if (role.toLowerCase().includes('student')) badge.classList.add('role-student');
+            else if (role.toLowerCase().includes('leader')) badge.classList.add('role-team-leader');
+            else if (role.toLowerCase().includes('observer')) badge.classList.add('role-observer');
+            else if (role.toLowerCase().includes('volunteer')) badge.classList.add('role-volunteer');
+            else if (role.toLowerCase().includes('organiser')) badge.classList.add('role-organiser');
+            else badge.classList.add('role-student');
+        })();
+    </script>
 </body>
 </html>

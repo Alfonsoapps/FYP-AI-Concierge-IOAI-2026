@@ -3,7 +3,19 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Mic, Send } from "lucide-react";
 
-const WS_URL = "ws://127.0.0.1:8000/api/v1/chat/123";
+const WS_BASE_URL = "ws://127.0.0.1:8000/api/v1/chat";
+const USER_ID_STORAGE_KEY = "ioai-concierge-user-id";
+
+function getOrCreateUserId(): string {
+  const existingUserId = window.localStorage.getItem(USER_ID_STORAGE_KEY);
+  if (existingUserId) return existingUserId;
+
+  const userId =
+    window.crypto?.randomUUID?.() ??
+    `user-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  window.localStorage.setItem(USER_ID_STORAGE_KEY, userId);
+  return userId;
+}
 
 export default function ChatInterface() {
   const [input, setInput] = useState("");
@@ -25,8 +37,12 @@ export default function ChatInterface() {
   // ─── WebSocket Connection ───────────────────────────────────────────────
 
   useEffect(() => {
+    let shouldReconnect = true;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+
     const connect = () => {
-      const ws = new WebSocket(WS_URL);
+      const userId = encodeURIComponent(getOrCreateUserId());
+      const ws = new WebSocket(`${WS_BASE_URL}/${userId}`);
 
       ws.onopen = () => {
         setConnected(true);
@@ -75,8 +91,9 @@ export default function ChatInterface() {
 
       ws.onclose = () => {
         setConnected(false);
-        // Reconnect after 3s
-        setTimeout(connect, 3000);
+        if (shouldReconnect) {
+          reconnectTimer = setTimeout(connect, 3000);
+        }
       };
 
       ws.onerror = () => {
@@ -89,7 +106,10 @@ export default function ChatInterface() {
     connect();
 
     return () => {
+      shouldReconnect = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       wsRef.current?.close();
+      wsRef.current = null;
     };
   }, []);
 

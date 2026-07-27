@@ -47,5 +47,28 @@ class KnowledgeBase:
         except Exception as e:
             raise RuntimeError(f"Failed to retrieve context: {e}") from e
 
+    async def get_all_knowledge(self) -> list[dict]:
+        """Return all stored knowledge entries in an admin-safe shape."""
+        results = await asyncio.to_thread(self.collection.get)
+        if not results or not results.get("ids"):
+            return []
+
+        ids = results["ids"]
+        documents = results.get("documents") or [""] * len(ids)
+        metadatas = results.get("metadatas") or [{} for _ in ids]
+
+        return [
+            {
+                "id": text_id,
+                "content": document or "",
+                "category": (metadata or {}).get("category", "general"),
+            }
+            for text_id, document, metadata in zip(ids, documents, metadatas)
+        ]
+
+    async def delete_knowledge(self, text_id: str) -> None:
+        """Delete a knowledge entry by its Chroma document ID."""
+        await asyncio.to_thread(self.collection.delete, ids=[text_id])
+
 
 rag_db = KnowledgeBase()

@@ -154,6 +154,14 @@ async def admin_uploads_page(request: Request):
     )
 
 
+@app.get("/admin/knowledge")
+async def admin_knowledge_page(request: Request):
+    """Admin knowledge base management page."""
+    return templates.TemplateResponse(
+        request, "admin_knowledge.html", {"request": request, "active_admin": "knowledge"}
+    )
+
+
 @app.get("/admin/chat-logs")
 async def admin_chat_logs_page(request: Request):
     """Admin chat logs page."""

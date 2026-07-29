@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base - Admin</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #0c0c1d; color: #e8e8f0; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #7c3aed, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .page-header p { font-size: 0.86rem; color: #8080a0; }
+
+        .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+        .search-input { flex: 1; min-width: 180px; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e8e8f0; font-size: 0.84rem; font-family: inherit; outline: none; transition: border-color 0.2s ease; }
+        .search-input:focus { border-color: rgba(124,58,237,0.5); }
+        .search-input::placeholder { color: #505070; }
+
+        .filter-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); color: #8080a0; font-size: 0.74rem; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
+        .filter-btn:hover { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #a78bfa; }
+        .filter-btn.active { background: rgba(124,58,237,0.15); border-color: #7c3aed; color: #e8e8f0; }
+
+        .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.82rem; font-weight: 600; font-family: inherit; transition: all 0.2s ease; }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
+        .btn-sm { padding: 6px 12px; font-size: 0.72rem; border-radius: 8px; }
+        .btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #a0a0c0; }
+        .btn-ghost:hover { border-color: rgba(124,58,237,0.4); color: #a78bfa; }
+        .btn-danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #ef4444; }
+        .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+        .stats-row { display: flex; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+        .stat-card { flex: 1; min-width: 100px; background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15); border-radius: 12px; padding: 14px; text-align: center; }
+        .stat-num { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
+        .stat-label { font-size: 0.64rem; color: #8080a0; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+        .kb-list { display: flex; flex-direction: column; gap: 10px; }
+        .kb-card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.12); border-radius: 12px; padding: 16px 18px; transition: border-color 0.2s ease; }
+        .kb-card:hover { border-color: rgba(124,58,237,0.3); }
+        .kb-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+        .kb-card-text { font-size: 0.84rem; color: #b0b0c8; line-height: 1.5; margin-bottom: 10px; }
+        .kb-card-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .kb-badge { font-size: 0.64rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+        .badge-event { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2); color: #a78bfa; }
+        .badge-venue { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+        .badge-transport { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: #60a5fa; }
+        .badge-food { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); color: #fb923c; }
+        .badge-general { background: rgba(128,128,160,0.1); border: 1px solid rgba(128,128,160,0.2); color: #8080a0; }
+        .kb-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+        .empty-state { text-align: center; padding: 60px 24px; }
+        .empty-icon { font-size: 3rem; margin-bottom: 14px; }
+        .empty-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+        .empty-desc { font-size: 0.86rem; color: #8080a0; margin-bottom: 20px; }
+
+        /* Modal */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .overlay.open { display: flex; }
+        .modal { width: 100%; max-width: 500px; background: #14142a; border: 1px solid rgba(124,58,237,0.3); border-radius: 16px; padding: 28px 24px; }
+        .modal h2 { font-size: 1.1rem; margin-bottom: 18px; }
+        .fg { margin-bottom: 16px; }
+        .fg label { display: block; font-size: 0.74rem; font-weight: 600; color: #a0a0c0; margin-bottom: 6px; }
+        .fg textarea, .fg select { width: 100%; padding: 11px 13px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e8e8f0; font-size: 0.86rem; font-family: inherit; outline: none; }
+        .fg textarea { resize: vertical; min-height: 100px; }
+        .fg select option { background: #14142a; }
+        .fg textarea:focus, .fg select:focus { border-color: rgba(124,58,237,0.5); }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        {% include 'partials/admin_sidebar.html' %}
+        <div class="admin-main">
+            <div class="page-header">
+                <h1>Knowledge Base</h1>
+                <p>Manage the chatbot's knowledge entries used for RAG retrieval.</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Entries</div></div>
+                <div class="stat-card"><div class="stat-num" id="stat-categories">0</div><div class="stat-label">Categories</div></div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <input class="search-input" id="search" type="text" placeholder="Search knowledge entries...">
+                <button class="filter-btn active" data-cat="all">All</button>
+                <button class="filter-btn" data-cat="event">Event</button>
+                <button class="filter-btn" data-cat="venue">Venue</button>
+                <button class="filter-btn" data-cat="transport">Transport</button>
+                <button class="filter-btn" data-cat="food">Food</button>
+                <button class="filter-btn" data-cat="general">General</button>
+                <button class="btn btn-primary" id="add-btn">+ Add Entry</button>
+            </div>
+
+            <!-- List -->
+            <div class="kb-list" id="kb-list"></div>
+
+            <!-- Empty state -->
+            <div class="empty-state" id="empty-state" style="display:none;">
+                <div class="empty-icon">📚</div>
+                <div class="empty-title">No knowledge entries yet</div>
+                <div class="empty-desc">Add knowledge entries to help the AI concierge answer questions about IOAI 2027.</div>
+                <button class="btn btn-primary" onclick="openModal()">Add First Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="overlay" id="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">Add Knowledge Entry</h2>
+            <div class="fg">
+                <label>Content</label>
+                <textarea id="entry-text" placeholder="Enter knowledge text..."></textarea>
+            </div>
+            <div class="fg">
+                <label>Category</label>
+                <select id="entry-category">
+                    <option value="event">Event</option>
+                    <option value="venue">Venue</option>
+                    <option value="transport">Transport</option>
+                    <option value="food">Food</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="save-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder knowledge data
+        let entries = [
+            { id: 1, text: 'IOAI 2027 will be held in Singapore from July 15 to July 22, 2027.', category: 'event' },
+            { id: 2, text: 'The main venue is Marina Bay Sands Convention Centre, located at 10 Bayfront Avenue.', category: 'venue' },
+            { id: 3, text: 'Participants should arrive at Singapore Changi Airport (SIN). Take the Downtown Line MRT to reach venues.', category: 'transport' },
+            { id: 4, text: 'Must-try foods include Hainanese Chicken Rice, Laksa, and Chili Crab. Hawker centres offer affordable meals.', category: 'food' },
+            { id: 5, text: 'NUS is the workshop venue located at 21 Lower Kent Ridge Road. Nearest MRT is Kent Ridge (CC24).', category: 'venue' },
+            { id: 6, text: 'SUTD hosts competition activities at 8 Somapah Road. Nearest MRT is Upper Changi (DT34).', category: 'venue' },
+            { id: 7, text: 'The Opening Ceremony starts at 9:00 AM on Day 1. Arrive 30 minutes early for registration.', category: 'event' },
+            { id: 8, text: 'Free Wi-Fi is available at all venues and most MRT stations in Singapore.', category: 'general' },
+            { id: 9, text: 'Emergency numbers: Police 999, Ambulance 995. Non-emergency police: 1800-255-0000.', category: 'general' },
+            { id: 10, text: 'Singapore weather in July is hot and humid (27-33°C). Bring light clothing and an umbrella.', category: 'general' },
+        ];
+
+        let nextId = 11;
+        let activeCategory = 'all';
+        let searchQuery = '';
+        let editingId = null;
+
+        // Render
+        function render() {
+            const filtered = entries.filter(e => {
+                const matchCat = activeCategory === 'all' || e.category === activeCategory;
+                const matchSearch = !searchQuery || e.text.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchCat && matchSearch;
+            });
+
+            document.getElementById('stat-total').textContent = entries.length;
+            document.getElementById('stat-categories').textContent = [...new Set(entries.map(e => e.category))].length;
+
+            const list = document.getElementById('kb-list');
+            const empty = document.getElementById('empty-state');
+
+            if (filtered.length === 0 && entries.length === 0) {
+                list.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:30px;color:#606080;font-size:0.88rem;">No entries match your search or filter.</div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(e => `
+                <div class="kb-card">
+                    <div class="kb-card-header">
+                        <span class="kb-badge badge-${e.category}">${e.category}</span>
+                        <div class="kb-card-actions">
+                            <button class="btn btn-sm btn-ghost" onclick="editEntry(${e.id})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEntry(${e.id})">Delete</button>
+                        </div>
+                    </div>
+                    <div class="kb-card-text">${e.text}</div>
+                </div>
+            `).join('');
+        }
+
+        // Search
+        document.getElementById('search').addEventListener('input', (ev) => {
+            searchQuery = ev.target.value;
+            render();
+        });
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeCategory = btn.dataset.cat;
+                render();
+            });
+        });
+
+        // Modal
+        function openModal() {
+            editingId = null;
+            document.getElementById('modal-title').textContent = 'Add Knowledge Entry';
+            document.getElementById('entry-text').value = '';
+            document.getElementById('entry-category').value = 'general';
+            document.getElementById('modal-overlay').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+            editingId = null;
+        }
+
+        document.getElementById('add-btn').addEventListener('click', openModal);
+
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const text = document.getElementById('entry-text').value.trim();
+            const category = document.getElementById('entry-category').value;
+            if (!text) return;
+
+            if (editingId !== null) {
+                const entry = entries.find(e => e.id === editingId);
+                if (entry) { entry.text = text; entry.category = category; }
+            } else {
+                entries.push({ id: nextId++, text, category });
+            }
+            closeModal();
+            render();
+        });
+
+        // Edit
+        function editEntry(id) {
+            const entry = entries.find(e => e.id === id);
+            if (!entry) return;
+            editingId = id;
+            document.getElementById('modal-title').textContent = 'Edit Knowledge Entry';
+            document.getElementById('entry-text').value = entry.text;
+            document.getElementById('entry-category').value = entry.category;
+            document.getElementById('modal-overlay').classList.add('open');
+        }
+
+        // Delete
+        function deleteEntry(id) {
+            if (!confirm('Delete this knowledge entry?')) return;
+            entries = entries.filter(e => e.id !== id);
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>

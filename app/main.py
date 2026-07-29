@@ -146,6 +146,14 @@ async def admin_announcements_page(request: Request):
     )
 
 
+@app.get("/admin/uploads")
+async def admin_uploads_page(request: Request):
+    """Admin document upload page."""
+    return templates.TemplateResponse(
+        request, "admin_uploads.html", {"request": request, "active_admin": "uploads"}
+    )
+
+
 @app.get("/safety")
 async def safety_page(request: Request):
     """Participant safety page - check-in and SOS submission."""
@@ -170,6 +178,15 @@ async def onboarding_page():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": settings.app_name}
+
+
+@app.post("/api/admin/uploads")
+async def upload_documents(request: Request):
+    """Placeholder endpoint for document uploads. Embedding generation not yet implemented."""
+    form = await request.form()
+    files = form.getlist("files")
+    filenames = [f.filename for f in files if hasattr(f, 'filename')]
+    return {"message": f"Received {len(filenames)} file(s).", "files": filenames}
 
 
 # Advanced RAG + audio WebSocket endpoint. This additional prefixed mounting

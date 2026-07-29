@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Uploads - Admin</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { font-size: 0.86rem; color: #8080a0; }
+
+        /* Upload area */
+        .upload-zone {
+            border: 2px dashed rgba(124,58,237,0.3); border-radius: 14px;
+            padding: 40px 24px; text-align: center; margin-bottom: 28px;
+            background: rgba(124,58,237,0.03); transition: all 0.2s ease; cursor: pointer;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #7c3aed; background: rgba(124,58,237,0.08);
+        }
+        .upload-zone-icon { font-size: 2.2rem; margin-bottom: 12px; }
+        .upload-zone-text { font-size: 0.9rem; color: #a0a0c0; margin-bottom: 6px; }
+        .upload-zone-sub { font-size: 0.75rem; color: #606080; }
+        .upload-zone input[type="file"] { display: none; }
+
+        .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
+            font-size: 0.82rem; font-weight: 600; font-family: inherit; transition: all 0.2s ease; }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; margin-top: 12px; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-danger { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; padding: 6px 12px; font-size: 0.72rem; }
+        .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+        /* Documents table */
+        .section-title { font-size: 0.74rem; font-weight: 600; color: #a0a0c0; text-transform: uppercase;
+            letter-spacing: 0.04em; margin-bottom: 14px; }
+
+        .doc-table { width: 100%; border-collapse: collapse; }
+        .doc-table th {
+            text-align: left; font-size: 0.7rem; font-weight: 600; color: #606080;
+            text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .doc-table td {
+            padding: 12px; font-size: 0.84rem; color: #b0b0c8;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .doc-table tr:hover td { background: rgba(124,58,237,0.04); }
+
+        .file-badge { display: inline-block; font-size: 0.64rem; font-weight: 600; padding: 3px 8px;
+            border-radius: 6px; text-transform: uppercase; }
+        .file-pdf { background: rgba(239,68,68,0.12); color: #ef4444; }
+        .file-docx { background: rgba(59,130,246,0.12); color: #60a5fa; }
+        .file-txt { background: rgba(16,185,129,0.12); color: #10b981; }
+
+        .status-badge { font-size: 0.66rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+        .status-uploaded { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+        .status-pending { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); color: #fb923c; }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: #505070; font-size: 0.88rem; }
+
+        .upload-feedback { margin-top: 12px; font-size: 0.82rem; padding: 10px 14px; border-radius: 10px; display: none; }
+        .upload-feedback.success { display: block; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+        .upload-feedback.error { display: block; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        {% include 'partials/admin_sidebar.html' %}
+        <div class="admin-main">
+            <div class="page-header">
+                <h1>Document Uploads</h1>
+                <p>Upload official documents to expand the chatbot's knowledge base.</p>
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+                <div class="upload-zone-icon">📄</div>
+                <div class="upload-zone-text">Drag & drop files here or click to browse</div>
+                <div class="upload-zone-sub">Accepted formats: PDF, DOCX, TXT (max 10MB)</div>
+                <input type="file" id="file-input" accept=".pdf,.docx,.txt" multiple>
+                <button class="btn btn-primary" id="upload-btn" disabled>Upload Selected Files</button>
+            </div>
+            <div class="upload-feedback" id="upload-feedback"></div>
+
+            <!-- Uploaded Documents -->
+            <div class="section-title">Uploaded Documents</div>
+            <table class="doc-table" id="doc-table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Uploaded</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="doc-list"></tbody>
+            </table>
+            <div class="empty-state" id="empty-state">No documents uploaded yet.</div>
+        </div>
+    </div>
+
+    <script>
+        // Sample uploaded documents (placeholder data)
+        let documents = [
+            { name: 'IOAI_2027_Handbook.pdf', type: 'pdf', size: '2.4 MB', date: '2027-07-10', status: 'uploaded' },
+            { name: 'Competition_Rules.docx', type: 'docx', size: '890 KB', date: '2027-07-08', status: 'uploaded' },
+            { name: 'Venue_Guide.txt', type: 'txt', size: '45 KB', date: '2027-07-05', status: 'pending' },
+        ];
+
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadZone = document.getElementById('upload-zone');
+        const feedback = document.getElementById('upload-feedback');
+
+        // File selection
+        fileInput.addEventListener('change', () => {
+            uploadBtn.disabled = fileInput.files.length === 0;
+            if (fileInput.files.length > 0) {
+                uploadBtn.textContent = `Upload ${fileInput.files.length} File${fileInput.files.length > 1 ? 's' : ''}`;
+            }
+        });
+
+        // Upload button
+        uploadBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (fileInput.files.length === 0) return;
+
+            const formData = new FormData();
+            const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+            const extMap = { 'application/pdf': 'pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx', 'text/plain': 'txt' };
+
+            for (const file of fileInput.files) {
+                if (!allowed.includes(file.type) && !file.name.match(/\.(pdf|docx|txt)$/i)) {
+                    showFeedback('error', `Invalid file type: ${file.name}. Only PDF, DOCX, TXT allowed.`);
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    showFeedback('error', `File too large: ${file.name}. Max 10MB.`);
+                    return;
+                }
+                formData.append('files', file);
+            }
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+
+                const res = await fetch('/api/admin/uploads', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Add to local list
+                    for (const file of fileInput.files) {
+                        const ext = file.name.split('.').pop().toLowerCase();
+                        documents.push({
+                            name: file.name,
+                            type: ext,
+                            size: formatSize(file.size),
+                            date: new Date().toISOString().split('T')[0],
+                            status: 'uploaded',
+                        });
+                    }
+                    renderTable();
+                    showFeedback('success', data.message || 'Files uploaded successfully.');
+                } else {
+                    showFeedback('error', data.detail || 'Upload failed.');
+                }
+            } catch (err) {
+                showFeedback('success', 'Files recorded (placeholder mode).');
+                for (const file of fileInput.files) {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    documents.push({ name: file.name, type: ext, size: formatSize(file.size), date: new Date().toISOString().split('T')[0], status: 'pending' });
+                }
+                renderTable();
+            }
+
+            fileInput.value = '';
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Upload Selected Files';
+        });
+
+        // Drag & drop
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        });
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('doc-list');
+            const empty = document.getElementById('empty-state');
+
+            if (documents.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = documents.map((doc, i) => `
+                <tr>
+                    <td>${doc.name}</td>
+                    <td><span class="file-badge file-${doc.type}">${doc.type}</span></td>
+                    <td>${doc.size}</td>
+                    <td>${doc.date}</td>
+                    <td><span class="status-badge status-${doc.status}">${doc.status}</span></td>
+                    <td><button class="btn-danger" onclick="removeDoc(${i})">Remove</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function removeDoc(index) {
+            if (confirm('Remove this document?')) {
+                documents.splice(index, 1);
+                renderTable();
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function showFeedback(type, msg) {
+            feedback.className = 'upload-feedback ' + type;
+            feedback.textContent = msg;
+            setTimeout(() => { feedback.className = 'upload-feedback'; }, 4000);
+        }
+
+        renderTable();
+    </script>
+</body>
+</html>

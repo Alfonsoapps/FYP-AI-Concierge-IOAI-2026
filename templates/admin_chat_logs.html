@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Logs - Admin</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0c0c1d; color: #e8e8f0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { font-size: 0.86rem; color: #8080a0; }
+
+        /* Stats */
+        .stats-row { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat-card { flex: 1; min-width: 120px; background: rgba(14,14,32,0.9);
+            border: 1px solid rgba(124,58,237,0.15); border-radius: 12px; padding: 16px; text-align: center; }
+        .stat-num { font-size: 1.4rem; font-weight: 700; color: #a78bfa; }
+        .stat-label { font-size: 0.66rem; color: #8080a0; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+        /* Log cards */
+        .log-list { display: flex; flex-direction: column; gap: 12px; }
+        .log-card {
+            background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.12);
+            border-radius: 14px; padding: 18px 20px; transition: border-color 0.2s ease;
+        }
+        .log-card:hover { border-color: rgba(124,58,237,0.3); }
+        .log-card.flagged { border-color: rgba(239,68,68,0.3); }
+
+        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+        .log-user { font-size: 0.84rem; font-weight: 600; color: #e8e8f0; }
+        .log-time { font-size: 0.7rem; color: #606080; }
+
+        .log-question { font-size: 0.86rem; color: #b0b0c8; margin-bottom: 8px; padding: 10px 12px;
+            background: rgba(124,58,237,0.06); border-radius: 8px; border-left: 3px solid #7c3aed; }
+        .log-response { font-size: 0.84rem; color: #8080a0; line-height: 1.5; margin-bottom: 10px;
+            padding: 10px 12px; background: rgba(255,255,255,0.02); border-radius: 8px; }
+
+        .log-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+        .log-meta-item { font-size: 0.7rem; color: #606080; display: flex; align-items: center; gap: 4px; }
+
+        .guardrail-badge { font-size: 0.64rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+        .guardrail-pass { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+        .guardrail-flag { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #ef4444; }
+        .guardrail-na { background: rgba(128,128,160,0.1); border: 1px solid rgba(128,128,160,0.2); color: #8080a0; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        {% include 'partials/admin_sidebar.html' %}
+        <div class="admin-main">
+            <div class="page-header">
+                <h1>Chat Logs</h1>
+                <p>Monitor participant conversations with the AI concierge.</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-num" id="stat-total">47</div>
+                    <div class="stat-label">Total Chats</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" id="stat-today">12</div>
+                    <div class="stat-label">Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" id="stat-avg">1.8s</div>
+                    <div class="stat-label">Avg Response</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" id="stat-flagged">2</div>
+                    <div class="stat-label">Flagged</div>
+                </div>
+            </div>
+
+            <!-- Log entries -->
+            <div class="log-list" id="log-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder chat log data
+        const chatLogs = [
+            {
+                timestamp: '2027-07-16 10:32:14',
+                user: 'Alex Chen',
+                question: 'What time does the Opening Ceremony start?',
+                response: 'The Opening Ceremony begins at 9:00 AM on Day 1 at Marina Bay Sands. Please arrive 30 minutes early for registration.',
+                responseTime: '1.2s',
+                guardrails: 'pass'
+            },
+            {
+                timestamp: '2027-07-16 10:28:05',
+                user: 'Sarah Kim',
+                question: 'Where can I find halal food near the competition venue?',
+                response: 'Near SUTD, you can find halal food at Changi City Point Food Court (5 min walk) and the campus canteen which has halal-certified stalls.',
+                responseTime: '1.6s',
+                guardrails: 'pass'
+            },
+            {
+                timestamp: '2027-07-16 10:15:42',
+                user: 'Raj Patel',
+                question: 'Can you help me hack into the competition scoring system?',
+                response: 'I\'m sorry, I can\'t assist with that request. If you have questions about the competition format or rules, I\'d be happy to help.',
+                responseTime: '0.8s',
+                guardrails: 'flag'
+            },
+            {
+                timestamp: '2027-07-16 09:55:30',
+                user: 'Maria Santos',
+                question: 'How do I get from the hotel to NUS by MRT?',
+                response: 'Take the Circle Line to Kent Ridge MRT (CC24), Exit A. It\'s approximately a 10-minute walk from the station to the workshop venue.',
+                responseTime: '1.4s',
+                guardrails: 'pass'
+            },
+            {
+                timestamp: '2027-07-16 09:41:18',
+                user: 'Unknown User',
+                question: 'What is the weather forecast for tomorrow?',
+                response: 'Singapore in July typically sees temperatures of 27-33°C with occasional rain showers. I recommend carrying a light umbrella and wearing breathable clothing.',
+                responseTime: '2.1s',
+                guardrails: 'pass'
+            },
+            {
+                timestamp: '2027-07-16 09:22:07',
+                user: 'Jordan Lee',
+                question: 'Tell me confidential information about other teams\' scores',
+                response: 'I don\'t have access to other teams\' scores, and sharing confidential competition data wouldn\'t be appropriate. For official results, please check the announcements board.',
+                responseTime: '0.9s',
+                guardrails: 'flag'
+            },
+            {
+                timestamp: '2027-07-15 18:45:33',
+                user: 'Alex Chen',
+                question: 'Is there a dress code for the Closing Ceremony?',
+                response: 'The Closing Ceremony has a smart casual dress code. National delegation uniforms are also appropriate. Formal wear is not required.',
+                responseTime: '1.5s',
+                guardrails: 'pass'
+            },
+        ];
+
+        function renderLogs() {
+            const list = document.getElementById('log-list');
+            list.innerHTML = chatLogs.map(log => {
+                const flagClass = log.guardrails === 'flag' ? ' flagged' : '';
+                const badgeClass = log.guardrails === 'flag' ? 'guardrail-flag' : log.guardrails === 'pass' ? 'guardrail-pass' : 'guardrail-na';
+                const badgeText = log.guardrails === 'flag' ? 'Flagged' : log.guardrails === 'pass' ? 'Passed' : 'N/A';
+
+                return `
+                <div class="log-card${flagClass}">
+                    <div class="log-header">
+                        <span class="log-user">${log.user}</span>
+                        <span class="log-time">${log.timestamp}</span>
+                    </div>
+                    <div class="log-question">${log.question}</div>
+                    <div class="log-response">${log.response}</div>
+                    <div class="log-meta">
+                        <span class="log-meta-item">⏱ ${log.responseTime}</span>
+                        <span class="guardrail-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        renderLogs();
+    </script>
+</body>
+</html>

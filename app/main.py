@@ -162,6 +162,33 @@ async def admin_chat_logs_page(request: Request):
     )
 
 
+@app.get("/admin/ai-settings")
+async def admin_ai_settings_page(request: Request):
+    """Admin AI settings page - shows current system configuration."""
+    # Get live config values
+    s = get_settings()
+    # Get ChromaDB doc count safely
+    doc_count = "N/A"
+    try:
+        from app.services.chroma_service import get_collection_stats
+        stats = get_collection_stats()
+        doc_count = str(stats.get("document_count", 0))
+    except Exception:
+        pass
+
+    return templates.TemplateResponse(
+        request, "admin_ai_settings.html", {
+            "request": request,
+            "active_admin": "ai-settings",
+            "model": s.nvidia_model,
+            "base_url": s.nvidia_base_url,
+            "embedding_model": s.nvidia_embedding_model,
+            "embedding_dims": s.nvidia_embedding_dimensions,
+            "doc_count": doc_count,
+        }
+    )
+
+
 @app.get("/safety")
 async def safety_page(request: Request):
     """Participant safety page - check-in and SOS submission."""

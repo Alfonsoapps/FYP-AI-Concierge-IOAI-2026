@@ -22,7 +22,11 @@ class Settings(BaseSettings):
     # NVIDIA API configuration
     nvidia_api_key: str = ""  # Loaded from NVIDIA_API_KEY in .env
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"  # Base URL (without /chat/completions)
-    nvidia_model: str = "meta/llama-3.1-8b-instruct"  # Model identifier
+    nvidia_model: str = "meta/llama-3.1-8b-instruct"  # Chat model identifier
+    # Pin both the embedding model and its Matryoshka output size. Chroma
+    # collections permanently adopt the dimension of their first embedding.
+    nvidia_embedding_model: str = "nvidia/llama-nemotron-embed-1b-v2"
+    nvidia_embedding_dimensions: int = 2048
 
     # App settings
     app_name: str = "AI Concierge"

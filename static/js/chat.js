@@ -17,6 +17,8 @@ const ChatManager = {
     isSpeaking: false,
     _ttsAbortController: null,
     _currentBlobUrl: null,
+    _activityTimer: null,
+    clientId: null,
     audioPlayer: null,
 
     // ============================================================
@@ -26,6 +28,26 @@ const ChatManager = {
         this.elements.input = document.getElementById('chat-input');
         this.elements.sendBtn = document.getElementById('send-btn');
         this.elements.messagesContainer = document.getElementById('chat-messages');
+
+        // Keep one anonymous identifier per browser so multiple tabs from the
+        // same person are counted once in the active-user metric.
+        this.clientId = localStorage.getItem('ioai-user-id');
+        const validClientId = /^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$/;
+        if (!this.clientId || !validClientId.test(this.clientId)) {
+            this.clientId = (window.crypto && window.crypto.randomUUID)
+                ? window.crypto.randomUUID()
+                : `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            localStorage.setItem('ioai-user-id', this.clientId);
+        }
+
+        this._sendActivity();
+        this._activityTimer = window.setInterval(
+            () => this._sendActivity(),
+            30000
+        );
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) this._sendActivity();
+        });
 
         // Audio player
         this.audioPlayer = new Audio();
@@ -68,6 +90,24 @@ const ChatManager = {
         console.log('[Chat] ✓ Initialized (side-by-side layout)');
     },
 
+    // Refresh this tab's activity without inflating the query counter.
+    async _sendActivity() {
+        if (!this.clientId || document.hidden) return;
+
+        try {
+            await fetch('/chat/activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: this.clientId }),
+                cache: 'no-store',
+                keepalive: true,
+            });
+        } catch (error) {
+            // Analytics must never interrupt the participant's chat session.
+            console.debug('[Chat] Activity heartbeat failed:', error.message);
+        }
+    },
+
     // ============================================================
     // sendMessage()
     // ============================================================
@@ -96,7 +136,10 @@ const ChatManager = {
         try {
             const response = await fetch('/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-ID': this.clientId,
+                },
                 body: JSON.stringify({ message: message }),
             });
 

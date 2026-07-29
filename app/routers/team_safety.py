@@ -71,7 +71,7 @@ class AlertStatusBody(BaseModel):
 async def team_dashboard_page(request: Request):
     """Team Leader Dashboard page."""
     return templates.TemplateResponse(
-        "team_dashboard.html", {"request": request, "active_page": "team"}
+        request, "team_dashboard.html", {"request": request, "active_page": "team"}
     )
 
 
@@ -79,7 +79,7 @@ async def team_dashboard_page(request: Request):
 async def team_manage_page(request: Request):
     """Team Management page."""
     return templates.TemplateResponse(
-        "team_manage.html", {"request": request, "active_page": "team"}
+        request, "team_manage.html", {"request": request, "active_page": "team"}
     )
 
 
@@ -87,7 +87,7 @@ async def team_manage_page(request: Request):
 async def team_sos_page(request: Request):
     """SOS Management page."""
     return templates.TemplateResponse(
-        "team_sos.html", {"request": request, "active_page": "team"}
+        request, "team_sos.html", {"request": request, "active_page": "team"}
     )
 
 

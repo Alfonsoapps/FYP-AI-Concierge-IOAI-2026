@@ -1,83 +1,63 @@
-"""
-Embedding Service Module
-
-Generates text embeddings using ChromaDB's built-in default embedding function.
-This uses the all-MiniLM-L6-v2 model via ONNX runtime — lightweight, fast,
-and requires no GPU or heavy dependencies like PyTorch.
-
-Architecture note:
-    ChromaDB includes its own embedding function by default.
-    We expose it here as a standalone service for flexibility.
-    Future: Can be swapped for NVIDIA NeMo embeddings or OpenAI embeddings.
-"""
+"""Pinned NVIDIA embedding generation with output-dimension validation."""
 
 import logging
-from typing import List
+from collections.abc import Sequence
+
+from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
-
-# The embedding function instance (loaded once, reused)
-_embed_fn = None
+_embed_fn: NVIDIAEmbeddings | None = None
 
 
-def get_embedding_function():
-    """
-    Get or initialize the embedding function.
-    Uses ChromaDB's default embedding function (all-MiniLM-L6-v2 via ONNX).
-    Lazy-loaded on first use.
-
-    Returns:
-        A ChromaDB embedding function instance.
-    """
+def get_embedding_function() -> NVIDIAEmbeddings:
+    """Return the shared embedding client with a stable model and dimension."""
     global _embed_fn
-
     if _embed_fn is None:
-        logger.info("Loading embedding function (ChromaDB default)...")
-        from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
-        _embed_fn = DefaultEmbeddingFunction()
-        logger.info("✓ Embedding function loaded")
-
+        settings = get_settings()
+        _embed_fn = NVIDIAEmbeddings(
+            model=settings.nvidia_embedding_model,
+            dimensions=settings.nvidia_embedding_dimensions,
+        )
+        logger.info(
+            "Embedding model configured (model=%s, dimensions=%d)",
+            settings.nvidia_embedding_model,
+            settings.nvidia_embedding_dimensions,
+        )
     return _embed_fn
 
 
-def generate_embedding(text: str) -> List[float]:
-    """
-    Generate an embedding vector for a single text string.
-
-    Args:
-        text: The text to embed.
-
-    Returns:
-        A list of floats representing the embedding vector (384 dimensions).
-
-    Raises:
-        ValueError: If text is empty.
-    """
-    if not text or not text.strip():
+def validate_embeddings(
+    embeddings: Sequence[Sequence[float]], expected_dimension: int | None = None
+) -> list[list[float]]:
+    """Copy vectors to lists and reject provider/model dimension drift."""
+    expected = expected_dimension or get_settings().nvidia_embedding_dimensions
+    vectors = [list(vector) for vector in embeddings]
+    for index, vector in enumerate(vectors):
+        if len(vector) != expected:
+            raise ValueError(
+                f"Embedding {index} has dimension {len(vector)}; expected {expected}. "
+                "Check NVIDIA_EMBEDDING_MODEL and NVIDIA_EMBEDDING_DIMENSIONS."
+            )
+    return vectors
+def generate_embedding(text: str) -> list[float]:
+    """Generate one query embedding (backward-compatible public helper)."""
+    clean_text = text.strip()
+    if not clean_text:
         raise ValueError("Cannot generate embedding for empty text.")
-
-    embed_fn = get_embedding_function()
-    embeddings = embed_fn([text])
-
-    logger.debug("Generated embedding for text (%d chars)", len(text))
-    return embeddings[0]
+    vector = get_embedding_function().embed_query(clean_text)
+    return validate_embeddings([vector])[0]
 
 
-def generate_embeddings(texts: List[str]) -> List[List[float]]:
-    """
-    Generate embeddings for multiple texts in a batch (more efficient).
-
-    Args:
-        texts: List of text strings to embed.
-
-    Returns:
-        List of embedding vectors.
-    """
+def generate_embeddings(texts: list[str]) -> list[list[float]]:
+    """Generate document embeddings in the model's retrieval document mode."""
     if not texts:
         return []
-
-    embed_fn = get_embedding_function()
-    embeddings = embed_fn(texts)
-
-    logger.info("Generated %d embeddings in batch", len(texts))
-    return embeddings
+    if any(not text or not text.strip() for text in texts):
+        raise ValueError("Cannot generate embeddings for empty text.")
+    vectors = get_embedding_function().embed_documents(
+        [text.strip() for text in texts]
+    )
+    logger.info("Generated %d document embeddings", len(texts))
+    return validate_embeddings(vectors)

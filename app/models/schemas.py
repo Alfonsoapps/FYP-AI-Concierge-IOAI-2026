@@ -1,4 +1,18 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ActivityRequest(BaseModel):
+    """Anonymous browser-session heartbeat; never contains participant PII."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    session_id: str = Field(
+        ...,
+        min_length=16,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]+$",
+        description="Random identifier persisted by the browser",
+    )
 
 
 class ChatRequest(BaseModel):

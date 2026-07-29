@@ -33,6 +33,7 @@ from app.routers import chat
 from app.routers import tts
 from app.routers import announcements
 from app.routers import team_safety
+from app.routers.chat import router as chat_router
 from app.services import announcement_service
 from app.services import team_safety_service
 
@@ -41,9 +42,11 @@ from app.services import team_safety_service
 # Import it defensively so the rest of the platform still boots; when
 # chromadb is installed this behaves exactly as before.
 try:
+    from app.routers import admin
     from app.routers import rag
     _RAG_AVAILABLE = True
 except Exception as _rag_err:  # pragma: no cover - environment dependent
+    admin = None
     rag = None
     _RAG_AVAILABLE = False
     logging.getLogger(__name__).warning(
@@ -72,6 +75,7 @@ app.include_router(chat.router)
 app.include_router(tts.router)
 if _RAG_AVAILABLE:
     app.include_router(rag.router)
+    app.include_router(admin.router, tags=["Admin"])
 app.include_router(announcements.router)
 app.include_router(team_safety.router)
 
@@ -99,7 +103,7 @@ async def _init_team_safety():
 @app.get("/")
 async def home_page(request: Request):
     """Home page - platform landing."""
-    return templates.TemplateResponse("home.html", {"request": request, "active_page": "home"})
+    return templates.TemplateResponse(request, "home.html", {"request": request, "active_page": "home"})
 
 
 @app.get("/guide")
@@ -111,26 +115,26 @@ async def guide_page():
 @app.get("/map")
 async def map_page(request: Request):
     """Map page - coming soon."""
-    return templates.TemplateResponse("map.html", {"request": request, "active_page": "map"})
+    return templates.TemplateResponse(request, "map.html", {"request": request, "active_page": "map"})
 
 
 @app.get("/schedule")
 async def schedule_page(request: Request):
     """Schedule page - coming soon."""
-    return templates.TemplateResponse("schedule.html", {"request": request, "active_page": "schedule"})
+    return templates.TemplateResponse(request, "schedule.html", {"request": request, "active_page": "schedule"})
 
 
 @app.get("/profile")
 async def profile_page(request: Request):
     """Profile page - coming soon."""
-    return templates.TemplateResponse("profile.html", {"request": request, "active_page": "profile"})
+    return templates.TemplateResponse(request, "profile.html", {"request": request, "active_page": "profile"})
 
 
 @app.get("/announcements")
 async def announcements_page(request: Request):
     """User-facing announcements page (current + history)."""
     return templates.TemplateResponse(
-        "announcements.html", {"request": request, "active_page": "announcements"}
+        request, "announcements.html", {"request": request, "active_page": "announcements"}
     )
 
 
@@ -138,7 +142,7 @@ async def announcements_page(request: Request):
 async def admin_announcements_page(request: Request):
     """Organiser announcement management console."""
     return templates.TemplateResponse(
-        "admin_announcements.html", {"request": request, "active_page": "announcements"}
+        request, "admin_announcements.html", {"request": request, "active_page": "announcements"}
     )
 
 
@@ -146,7 +150,7 @@ async def admin_announcements_page(request: Request):
 async def safety_page(request: Request):
     """Participant safety page - check-in and SOS submission."""
     return templates.TemplateResponse(
-        "safety.html", {"request": request, "active_page": "safety"}
+        request, "safety.html", {"request": request, "active_page": "safety"}
     )
 
 
@@ -172,3 +176,8 @@ async def avatar_setup_page():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": settings.app_name}
+
+
+# Advanced RAG + audio WebSocket endpoint. This additional prefixed mounting
+# leaves every existing teammate route and startup event above unchanged.
+app.include_router(chat_router, prefix="/api/v1/chat", tags=["Chat"])

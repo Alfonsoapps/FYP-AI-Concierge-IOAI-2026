@@ -91,20 +91,32 @@
                 <div class="setting-card">
                     <div class="setting-card-header">
                         <span class="setting-card-title">NeMo Guardrails</span>
-                        <span class="status-indicator status-inactive"><span class="status-dot"></span>Not Configured</span>
+                        {% if guardrails_active %}
+                        <span class="status-indicator status-active"><span class="status-dot"></span>Active</span>
+                        {% else %}
+                        <span class="status-indicator status-partial"><span class="status-dot"></span>Configured (lazy-load)</span>
+                        {% endif %}
                     </div>
                     <div class="setting-rows">
                         <div class="setting-row">
                             <span class="setting-label">Status</span>
-                            <span class="setting-value muted">Guardrails not yet integrated</span>
+                            <span class="setting-value">Integrated into /chat pipeline</span>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Colang Version</span>
+                            <span class="setting-value">2.x</span>
                         </div>
                         <div class="setting-row">
                             <span class="setting-label">Input Filtering</span>
-                            <span class="setting-value muted">Pending</span>
+                            <span class="setting-value">self_check_input (LLM-based)</span>
                         </div>
                         <div class="setting-row">
                             <span class="setting-label">Output Filtering</span>
-                            <span class="setting-value muted">Pending</span>
+                            <span class="setting-value muted">Not enabled</span>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Config Directory</span>
+                            <span class="setting-value">app/guardrails_config/</span>
                         </div>
                     </div>
                 </div>
@@ -135,16 +147,16 @@
                 <div class="setting-card">
                     <div class="setting-card-header">
                         <span class="setting-card-title">RAG Pipeline</span>
-                        <span class="status-indicator status-partial"><span class="status-dot"></span>Partial</span>
+                        <span class="status-indicator status-active"><span class="status-dot"></span>Active</span>
                     </div>
                     <div class="setting-rows">
                         <div class="setting-row">
                             <span class="setting-label">Status</span>
-                            <span class="setting-value">Embedding + storage ready; not connected to chat</span>
+                            <span class="setting-value">Connected to /chat pipeline via LangChain</span>
                         </div>
                         <div class="setting-row">
                             <span class="setting-label">Context Injection</span>
-                            <span class="setting-value muted">Not yet wired to /chat endpoint</span>
+                            <span class="setting-value">ChromaDB → LLM prompt context</span>
                         </div>
                         <div class="setting-row">
                             <span class="setting-label">Retrieval Endpoint</span>

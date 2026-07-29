@@ -18,6 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js"></script>
 
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
     <link rel="stylesheet" href="/static/css/navbar.css">
 </head>
 <body>
@@ -25,6 +26,11 @@
     <!-- TOP HEADER BAR -->
     <header id="top-bar">
         <div class="brand">
+            <button id="sidebar-toggle" aria-label="Toggle conversation history">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
             <svg class="brand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="3" y="8" width="2" height="8" rx="1" fill="currentColor" opacity="0.6"/>
                 <rect x="7" y="5" width="2" height="14" rx="1" fill="currentColor"/>
@@ -46,8 +52,30 @@
         </div>
     </header>
 
-    <!-- MAIN CONTENT: Chat Left | Avatar Right -->
+    <!-- MAIN CONTENT: Sidebar | Chat Left | Avatar Right -->
     <div id="main-content">
+
+        <!-- Mobile overlay -->
+        <div id="sidebar-overlay"></div>
+
+        <!-- Conversation History Sidebar -->
+        <aside id="conv-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <div class="sidebar-brand-icon">🤖</div>
+                    <span class="sidebar-brand-text">AI Concierge</span>
+                </div>
+                <button id="conv-new-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+                    New Conversation
+                </button>
+            </div>
+            <div class="sidebar-section-label">My Conversations</div>
+            <div id="conv-list"></div>
+            <div class="sidebar-footer">
+                <button id="conv-clear-btn">🗑 Clear History</button>
+            </div>
+        </aside>
 
         <!-- LEFT: Chat Panel -->
         <div id="chat-panel">
@@ -76,6 +104,17 @@ What would you like to know first?</div>
             </div>
 
             <!-- Input -->
+            <div id="file-preview" class="file-preview hidden">
+                <div class="file-preview-content">
+                    <span id="file-preview-name"></span>
+                </div>
+                <button id="file-remove-btn" aria-label="Remove attached file" title="Remove file">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
             <div id="chat-input-area">
                 <button id="mic-btn" aria-label="Start voice input" title="Click to speak">
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -83,6 +122,12 @@ What would you like to know first?</div>
                         <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                     </svg>
                 </button>
+                <button id="attach-btn" aria-label="Attach a file" title="Attach file">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </button>
+                <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.gif,.webp" style="display:none">
                 <input type="text" id="chat-input" placeholder="Ask me anything about IOAI 2027..." autocomplete="off">
                 <button id="send-btn" aria-label="Send message">
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -144,12 +189,14 @@ What would you like to know first?</div>
 
     <!-- Scripts -->
     <script src="/static/js/avatar.js"></script>
-    <script src="/static/js/chat.js?v=20260729-active-sessions-v2"></script>
+    <script src="/static/js/conversations.js"></script>
+    <script src="/static/js/chat.js?v=20260730-conversations"></script>
     <script src="/static/js/voice.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('[App] Starting Welcome Guide...');
+            ConversationManager.init();
             ChatManager.init();
             VoiceManager.init();
             await AvatarManager.init();

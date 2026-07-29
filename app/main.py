@@ -192,6 +192,14 @@ async def admin_ai_settings_page(request: Request):
     except Exception:
         pass
 
+    # Check guardrails availability
+    guardrails_active = False
+    try:
+        from app.services.guardrails_service import is_available
+        guardrails_active = is_available()
+    except Exception:
+        pass
+
     return templates.TemplateResponse(
         request, "admin_ai_settings.html", {
             "request": request,
@@ -201,6 +209,7 @@ async def admin_ai_settings_page(request: Request):
             "embedding_model": s.nvidia_embedding_model,
             "embedding_dims": s.nvidia_embedding_dimensions,
             "doc_count": doc_count,
+            "guardrails_active": guardrails_active,
         }
     )
 

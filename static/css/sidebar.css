@@ -1,0 +1,266 @@
+/* ============================================================
+   Conversation History Sidebar
+   ============================================================ */
+
+/* Sidebar overlay (mobile) */
+#sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 80;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#sidebar-overlay.visible { display: block; opacity: 1; }
+
+/* Sidebar container */
+#conv-sidebar {
+    width: 240px;
+    min-width: 240px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 10, 24, 0.97);
+    border-right: 1px solid var(--border);
+    z-index: 90;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Sidebar header */
+.sidebar-header {
+    padding: 18px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.sidebar-brand-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.sidebar-brand-text {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.02em;
+}
+
+/* New conversation button */
+#conv-new-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: 1px dashed rgba(124, 58, 237, 0.35);
+    border-radius: 10px;
+    background: rgba(124, 58, 237, 0.06);
+    color: #a78bfa;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+#conv-new-btn:hover {
+    background: rgba(124, 58, 237, 0.12);
+    border-color: var(--accent);
+    color: white;
+}
+#conv-new-btn svg { width: 14px; height: 14px; }
+
+/* Conversation list */
+.sidebar-section-label {
+    padding: 14px 16px 6px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+#conv-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+}
+
+#conv-list::-webkit-scrollbar { width: 3px; }
+#conv-list::-webkit-scrollbar-track { background: transparent; }
+#conv-list::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.15); border-radius: 2px; }
+
+/* Conversation item */
+.conv-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    margin-bottom: 2px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+}
+
+.conv-item:hover {
+    background: rgba(124, 58, 237, 0.08);
+}
+
+.conv-item.active {
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.conv-item:not(.active) { border: 1px solid transparent; }
+
+.conv-item-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.conv-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(124, 58, 237, 0.08);
+}
+
+.conv-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.conv-title {
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.conv-item.active .conv-title { color: white; }
+
+.conv-meta {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+/* Delete button */
+.conv-delete {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+
+.conv-item:hover .conv-delete { opacity: 0.6; }
+.conv-delete:hover { opacity: 1 !important; background: rgba(239, 68, 68, 0.1); }
+.conv-delete svg { width: 13px; height: 13px; color: var(--red); }
+
+/* Sidebar footer */
+.sidebar-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+#conv-clear-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.06);
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+#conv-clear-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--red);
+}
+
+/* Mobile hamburger toggle */
+#sidebar-toggle {
+    display: none;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+#sidebar-toggle svg { width: 16px; height: 16px; color: var(--text-dim); }
+#sidebar-toggle:hover { border-color: var(--accent-border); }
+#sidebar-toggle:hover svg { color: var(--accent); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1100px) {
+    #conv-sidebar { width: 200px; min-width: 200px; }
+}
+
+@media (max-width: 900px) {
+    #conv-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #conv-sidebar.open {
+        transform: translateX(0);
+    }
+
+    #sidebar-toggle {
+        display: flex;
+    }
+}

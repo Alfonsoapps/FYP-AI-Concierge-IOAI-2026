@@ -1,7 +1,6 @@
 import core
 import guardrails
 import llm
-import nemoguardrails.library.self_check.input_check
 
 flow main
   activate llm continuation
@@ -35,8 +34,3 @@ flow user expressed greeting
 
 flow bot express greeting
   bot say "Hello! I'm your IOAI 2027 AI Concierge. How can I help you today?"
-
-# --- Input Rails: LLM-based safety check on every user message ---
-
-flow input rails $input_text
-  self check input

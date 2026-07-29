@@ -87,7 +87,7 @@ def _init_rails() -> Optional[object]:
         return None
 
 
-def generate_guarded_response(user_message: str) -> Optional[str]:
+async def generate_guarded_response(user_message: str) -> Optional[str]:
     """
     Pass a user message through NeMo Guardrails and return the AI reply.
 
@@ -111,7 +111,7 @@ def generate_guarded_response(user_message: str) -> Optional[str]:
     messages = [{"role": "user", "content": user_message}]
 
     try:
-        result = rails.generate(messages=messages)
+        result = await rails.generate_async(messages=messages)
         # LLMRails returns a dict {"role": "assistant", "content": "..."}
         if isinstance(result, dict):
             content = result.get("content", "")

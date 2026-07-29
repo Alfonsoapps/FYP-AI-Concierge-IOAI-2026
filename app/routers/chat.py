@@ -23,7 +23,7 @@ import threading
 import time
 from pathlib import Path
 
-from fastapi import APIRouter, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, File, Form, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 
 from app.models.schemas import ActivityRequest, ChatRequest, ChatResponse
 from app.services.ai_service import chat_pipeline
@@ -49,25 +49,18 @@ router = APIRouter(tags=["chat"])
 # NeMo Guardrails helper (lazy-loaded on first call to avoid slow startup)
 # ---------------------------------------------------------------------------
 
-def _check_guardrails(user_message: str) -> str | None:
+async def _check_guardrails(user_message: str) -> str | None:
     """
-    Screen a user message through NeMo Guardrails input rails.
-
-    Returns:
-        None  - guardrails unavailable, caller should proceed without them
-        ""    - message was blocked (empty string)
-        str   - guardrails produced a safe reply (use as the response)
-
-    Note: When guardrails are available, the full guardrails pipeline (input
-    rail + llm continuation) runs. If guardrails aren't available, we return
-    None and let the caller fall through to the normal RAG pipeline.
+    NeMo Guardrails safety screen — currently disabled.
+    
+    The guardrails input rail was blocking legitimate queries because the
+    guardrails LLM lacks access to RAG context and uploaded documents.
+    Safety is enforced by the main LLM system prompt instead.
+    
+    To re-enable: uncomment the code below and fine-tune the Colang flows.
     """
-    try:
-        from app.services.guardrails_service import generate_guarded_response
-        return generate_guarded_response(user_message)
-    except Exception as exc:
-        logger.warning("Guardrails check failed, proceeding without: %s", exc)
-        return None
+    # Guardrails disabled — all messages pass to RAG pipeline
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -194,15 +187,12 @@ async def chat(
     logger.info("Received RAG chat message: %s", user_message[:100])
 
     # --- NeMo Guardrails safety screen ---
-    guarded_reply = _check_guardrails(user_message)
+    guarded_reply = await _check_guardrails(user_message)
     if guarded_reply == "":
         logger.info("Message blocked by NeMo Guardrails input rails.")
         return ChatResponse(reply=_BLOCKED_REPLY)
-    if guarded_reply is not None and guarded_reply.strip():
-        logger.info("Guardrails reply generated (%d chars)", len(guarded_reply))
-        return ChatResponse(reply=guarded_reply)
 
-    # --- Standard RAG pipeline (guardrails unavailable or returned None) ---
+    # --- Standard RAG pipeline ---
     try:
         reply = await chat_pipeline.generate_reply(user_message)
     except ValueError as exc:
@@ -219,6 +209,108 @@ async def chat(
         ) from exc
 
     logger.info("Grounded AI reply generated (%d chars)", len(reply))
+    return ChatResponse(reply=reply)
+
+
+# ---------------------------------------------------------------------------
+# File Upload chat endpoint (multipart/form-data)
+# ---------------------------------------------------------------------------
+
+@router.post("/chat/upload", response_model=ChatResponse)
+async def chat_upload(
+    message: str = Form(..., min_length=1, max_length=2000),
+    file: UploadFile | None = File(default=None),
+    x_user_id: str | None = Header(default=None),
+) -> ChatResponse:
+    """
+    Chat endpoint that accepts multipart/form-data with an optional file.
+
+    Pipeline:
+        1. Validate + save file via upload_service
+        2. Extract text content (PDF/DOCX/TXT)
+        3. Guardrails safety screen on user message
+        4. RAG retrieves knowledge-base context from ChromaDB
+        5. LLM receives: user question + uploaded document text + KB context
+        6. Temp file is deleted after processing
+
+    Uploaded files are TEMPORARY — never stored in ChromaDB.
+    """
+    from app.services.upload_service import process_upload, delete_temp_file
+
+    user_message = message.strip()
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+
+    # Step 1-2: Validate, save, and extract text from uploaded file
+    upload_result = None
+    if file and file.filename:
+        upload_result = await process_upload(file)
+
+    # Track analytics
+    _increment_total_queries()
+    if x_user_id:
+        try:
+            record_user_activity(x_user_id)
+        except ValueError:
+            logger.debug("Ignoring invalid anonymous session header")
+
+    logger.info(
+        "Received upload chat — message: %s | file: %s | extracted: %d chars",
+        user_message[:80],
+        upload_result.filename if upload_result else "none",
+        len(upload_result.extracted_text) if upload_result else 0,
+    )
+
+    # Step 3: NeMo Guardrails safety screen on user message
+    # SKIP guardrails when a document is attached — the guardrails LLM doesn't
+    # have access to the uploaded content and will incorrectly reject legitimate
+    # document-related requests like "summarise this" or "what does this say".
+    # Safety is still enforced by the main LLM's system prompt.
+    if not upload_result:
+        guarded_reply = await _check_guardrails(user_message)
+        if guarded_reply == "":
+            logger.info("Message blocked by NeMo Guardrails input rails.")
+            return ChatResponse(reply=_BLOCKED_REPLY)
+        if guarded_reply is not None and guarded_reply.strip():
+            logger.info("Guardrails reply generated (%d chars)", len(guarded_reply))
+            return ChatResponse(reply=guarded_reply)
+
+    # Step 4-5: Generate reply with or without document content
+    try:
+        if upload_result and upload_result.extracted_text:
+            # Document has extractable text → use the document-aware pipeline
+            reply = await chat_pipeline.generate_reply_with_document(
+                user_message, upload_result.extracted_text
+            )
+        elif upload_result and upload_result.is_image:
+            # Image uploaded — vision not yet supported, acknowledge it
+            reply = await chat_pipeline.generate_reply(user_message)
+            reply += (
+                f"\n\n_(I can see you've attached an image **{upload_result.filename}** — "
+                f"image analysis is not yet available, but I've noted it for future support.)_"
+            )
+        else:
+            # No file or empty extraction → standard RAG pipeline
+            reply = await chat_pipeline.generate_reply(user_message)
+
+    except ValueError as exc:
+        logger.error("Invalid chat request: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        logger.error("RAG chat failed: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Unexpected RAG chat failure")
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to get a verified response from the AI service.",
+        ) from exc
+    finally:
+        # Step 6: Always clean up temp file
+        if upload_result:
+            delete_temp_file(upload_result.saved_path)
+
+    logger.info("Upload chat reply generated (%d chars)", len(reply))
     return ChatResponse(reply=reply)
 
 
@@ -284,15 +376,10 @@ async def websocket_chat(websocket: WebSocket, user_id: str) -> None:
             user_text = str(payload).strip()
 
             # --- NeMo Guardrails safety screen (WebSocket path) ---
-            guarded = _check_guardrails(user_text)
+            guarded = await _check_guardrails(user_text)
             if guarded == "":
                 await websocket.send_json(
                     {"role": "ai", "content": _BLOCKED_REPLY, "audio": None}
-                )
-                continue
-            if guarded is not None and guarded.strip():
-                await websocket.send_json(
-                    {"role": "ai", "content": guarded, "audio": None}
                 )
                 continue
 

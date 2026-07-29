@@ -48,6 +48,29 @@ Verified Event Database: {context}""",
             ]
         )
 
+        # Prompt variant that includes uploaded document content
+        self.prompt_with_document = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """You are the official IOAI 2027 AI Concierge in Singapore.
+
+CRITICAL INSTRUCTIONS:
+1. UPLOADED DOCUMENT: The user has uploaded a document. Its extracted text content is provided below under 'Uploaded Document Content'. Use this content to answer the user's question about the document.
+2. VERIFIED FACTS: Read the 'Verified Event Database' below. If it contains information relevant to the user's question, you MUST use it and prioritize it alongside the uploaded document.
+3. MISSING FACTS: If the user asks about the IOAI event, schedule, or logistics, but neither the uploaded document nor the database has the answer, reply EXACTLY: 'I do not have that specific event information yet. Please check the Schedule tab.'
+4. GENERAL KNOWLEDGE: If the user asks a general question that is clearly outside the scope of IOAI logistics, you may use your general knowledge to answer them helpfully.
+5. TONE: Be enthusiastic, concise, and youth-friendly. Keep answers brief (2-4 sentences). Reference the uploaded document when relevant.
+
+Uploaded Document Content:
+{document_content}
+
+Verified Event Database: {context}""",
+                ),
+                ("user", "{input}"),
+            ]
+        )
+
     async def generate_reply(self, user_text: str) -> str:
         """Generate a reply using retrieved facts or appropriate general knowledge."""
         try:
@@ -77,6 +100,58 @@ Verified Event Database: {context}""",
         except Exception as e:
             logger.error(f"Chat error: {e}")
             return "I'm sorry, I am having trouble connecting to my AI brain right now. Please try again later."
+
+    async def generate_reply_with_document(
+        self, user_text: str, document_content: str
+    ) -> str:
+        """
+        Generate a reply that considers both the uploaded document content
+        and the knowledge base (ChromaDB) context.
+
+        Args:
+            user_text: The user's question/message.
+            document_content: Extracted text from the uploaded file.
+
+        Returns:
+            AI-generated response grounded in both sources.
+        """
+        try:
+            # Retrieve relevant knowledge-base context
+            context = await rag_db.retrieve_context(user_text)
+
+            context_str = (
+                "No verified facts found for this query."
+                if context is None
+                or (
+                    isinstance(context, str)
+                    and (
+                        not context.strip()
+                        or context
+                        == "No verified knowledge-base sources matched this question."
+                    )
+                )
+                else context
+            )
+
+            # Truncate document content to avoid exceeding token limits
+            # (~4000 chars ≈ ~1000 tokens, leaving room for context + response)
+            max_doc_chars = 6000
+            truncated_doc = document_content[:max_doc_chars]
+            if len(document_content) > max_doc_chars:
+                truncated_doc += "\n\n[... document truncated for length ...]"
+
+            messages = self.prompt_with_document.format_messages(
+                document_content=truncated_doc,
+                context=context_str,
+                input=user_text,
+            )
+
+            response = await self.llm.ainvoke(messages)
+            return response.content
+
+        except Exception as e:
+            logger.error(f"Chat with document error: {e}")
+            return "I'm sorry, I am having trouble processing your document right now. Please try again later."
 
     async def generate_audio(self, text: str) -> dict[str, str]:
         """Generate uniquely named audio with pyttsx3 in a worker thread."""

@@ -142,7 +142,7 @@ async def announcements_page(request: Request):
 async def admin_announcements_page(request: Request):
     """Organiser announcement management console."""
     return templates.TemplateResponse(
-        request, "admin_announcements.html", {"request": request, "active_page": "announcements"}
+        request, "admin_announcements.html", {"request": request, "active_page": "announcements", "active_admin": "announcements"}
     )
 
 

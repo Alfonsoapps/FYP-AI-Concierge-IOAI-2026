@@ -1,0 +1,132 @@
+/* ============================================================
+   Admin Panel - Sidebar Navigation
+   ============================================================ */
+
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: #0a0a18;
+    border-right: 1px solid rgba(124, 58, 237, 0.12);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+}
+
+.sidebar-header {
+    padding: 20px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-brand-icon {
+    font-size: 1.2rem;
+}
+
+.sidebar-brand-text {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #e8e8f0;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #7070908;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    color: #8080a0;
+}
+
+.sidebar-item svg {
+    width: 16px;
+    height: 16px;
+    stroke: #606080;
+    flex-shrink: 0;
+    transition: stroke 0.2s ease;
+}
+
+.sidebar-item:hover {
+    background: rgba(124, 58, 237, 0.08);
+    color: #a78bfa;
+}
+
+.sidebar-item:hover svg {
+    stroke: #a78bfa;
+}
+
+.sidebar-item.active {
+    background: rgba(124, 58, 237, 0.15);
+    color: #e8e8f0;
+}
+
+.sidebar-item.active svg {
+    stroke: #a78bfa;
+}
+
+.sidebar-footer {
+    padding: 12px 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Main content area when sidebar is present */
+.admin-main {
+    margin-left: 240px;
+    flex: 1;
+    padding: 32px 32px 60px;
+    min-height: 100vh;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-sidebar {
+        width: 60px;
+    }
+
+    .sidebar-brand-text,
+    .sidebar-item span {
+        display: none;
+    }
+
+    .sidebar-header {
+        padding: 16px 12px;
+        text-align: center;
+    }
+
+    .sidebar-item {
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .admin-main {
+        margin-left: 60px;
+        padding: 24px 16px 60px;
+    }
+}

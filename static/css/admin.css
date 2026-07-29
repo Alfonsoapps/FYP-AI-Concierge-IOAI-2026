@@ -94,6 +94,26 @@
 .sidebar-footer {
     padding: 12px 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-signout {
+    color: #ef4444 !important;
+}
+
+.sidebar-signout svg {
+    stroke: #ef4444 !important;
+}
+
+.sidebar-signout:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #f87171 !important;
+}
+
+.sidebar-signout:hover svg {
+    stroke: #f87171 !important;
 }
 
 /* Main content area when sidebar is present */

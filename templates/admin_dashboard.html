@@ -3,222 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IOAI 2027 Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
+    <title>Admin Dashboard - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #0c0c1d; color: #e8e8f0; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #7c3aed, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .page-header p { font-size: 0.86rem; color: #8080a0; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 28px; }
+        .stat-card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15); border-radius: 14px; padding: 20px; text-align: center; }
+        .stat-icon { font-size: 1.5rem; margin-bottom: 8px; }
+        .stat-num { font-size: 1.6rem; font-weight: 700; color: #a78bfa; }
+        .stat-label { font-size: 0.68rem; color: #8080a0; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+        .section-title { font-size: 0.78rem; font-weight: 600; color: #a0a0c0; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
+
+        .quick-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px; }
+        .quick-link { display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.12); border-radius: 12px; text-decoration: none; color: #e8e8f0; transition: all 0.2s ease; }
+        .quick-link:hover { border-color: rgba(124,58,237,0.4); background: rgba(124,58,237,0.06); }
+        .quick-link-icon { font-size: 1.3rem; }
+        .quick-link-text { font-size: 0.84rem; font-weight: 500; }
+        .quick-link-desc { font-size: 0.7rem; color: #8080a0; margin-top: 2px; }
+
+        .activity-list { display: flex; flex-direction: column; gap: 10px; }
+        .activity-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(14,14,32,0.9); border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; }
+        .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .activity-dot.green { background: #10b981; }
+        .activity-dot.purple { background: #7c3aed; }
+        .activity-dot.orange { background: #fb923c; }
+        .activity-text { font-size: 0.82rem; color: #b0b0c8; flex: 1; }
+        .activity-time { font-size: 0.7rem; color: #606080; flex-shrink: 0; }
+    </style>
 </head>
-<body class="bg-gray-950 text-gray-200 min-h-screen p-8">
-    <main class="mx-auto max-w-7xl">
-        <a href="/" class="mb-6 inline-flex items-center gap-2 text-sm font-medium text-blue-400 hover:text-blue-300">
-            <i data-feather="arrow-left" class="h-4 w-4"></i>
-            Back to Concierge
-        </a>
-
-        <header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-blue-400">Organizer Control Center</p>
-                <h1 class="mt-2 text-3xl font-bold text-white sm:text-4xl">IOAI 2027 Admin Dashboard</h1>
-                <p class="mt-3 max-w-2xl text-gray-400">Monitor concierge activity and manage the verified knowledge used to answer attendee questions.</p>
+<body>
+    <div class="admin-layout">
+        {% include 'partials/admin_sidebar.html' %}
+        <div class="admin-main">
+            <div class="page-header">
+                <h1>Admin Dashboard</h1>
+                <p>Overview of the IOAI 2027 AI Concierge platform.</p>
             </div>
-            <button type="button" onclick="fetchData()" class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm font-semibold hover:bg-gray-800">
-                <i data-feather="refresh-cw" class="h-4 w-4"></i>
-                Refresh
-            </button>
-        </header>
 
-        <!-- Live analytics cards populated by fetchData(). -->
-        <section class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article class="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <p class="text-sm text-gray-400">Total Queries</p>
-                <p id="stat-queries" class="mt-2 text-3xl font-bold text-white">0</p>
-            </article>
-            <article class="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <p class="text-sm text-gray-400">Active Users</p>
-                <p id="stat-users" class="mt-2 text-3xl font-bold text-white">0</p>
-            </article>
-            <article class="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <p class="text-sm text-gray-400">Stored Facts</p>
-                <p id="stat-kb" class="mt-2 text-3xl font-bold text-white">0</p>
-            </article>
-            <article class="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <p class="text-sm text-gray-400">System Health</p>
-                <p id="stat-health" class="mt-2 text-xl font-bold text-emerald-400">Checking...</p>
-            </article>
-        </section>
-
-
-        <section class="mt-8 grid grid-cols-1 gap-8 pb-12 lg:grid-cols-3">
-            <!-- Knowledge ingestion form. -->
-            <form id="knowledge-form" class="h-fit rounded-2xl border border-gray-800 bg-gray-900 p-6 shadow-2xl">
-                <div class="mb-6 flex items-center gap-3">
-                    <span class="rounded-xl bg-blue-500/10 p-3 text-blue-400"><i data-feather="database" class="h-5 w-5"></i></span>
-                    <div>
-                        <h2 class="text-lg font-semibold text-white">Add Knowledge</h2>
-                        <p class="text-sm text-gray-500">Create or update an entry</p>
-                    </div>
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-num">47</div>
+                    <div class="stat-label">Total Chats</div>
                 </div>
-
-                <div class="space-y-5">
-                    <div>
-                        <label for="text_id" class="text-sm font-medium">Text ID</label>
-                        <input id="text_id" name="text_id" type="text" required placeholder="e.g. venue-registration" class="mt-2 w-full rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                    </div>
-                    <div>
-                        <label for="category" class="text-sm font-medium">Category</label>
-                        <select id="category" name="category" class="mt-2 w-full rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none focus:border-blue-500">
-                            <option value="logistics">Logistics</option>
-                            <option value="culture">Culture</option>
-                            <option value="event">Event</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="content" class="text-sm font-medium">Content</label>
-                        <textarea id="content" name="content" rows="6" required placeholder="Enter verified event information..." class="mt-2 w-full resize-y rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg mt-4">+ Add to Knowledge Base</button>
-                    <div id="form-status" role="status" class="min-h-6 text-sm"></div>
+                <div class="stat-card">
+                    <div class="stat-icon">📄</div>
+                    <div class="stat-num">10</div>
+                    <div class="stat-label">Knowledge Entries</div>
                 </div>
-            </form>
-
-            <!-- Knowledge database populated by Vanilla JavaScript. -->
-            <section class="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900 shadow-2xl lg:col-span-2">
-                <div class="border-b border-gray-800 px-6 py-5">
-                    <h2 class="text-lg font-semibold text-white">Knowledge Database</h2>
-                    <p class="mt-1 text-sm text-gray-500">Verified information available to the concierge</p>
+                <div class="stat-card">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-num">3</div>
+                    <div class="stat-label">Documents</div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[680px] text-left text-sm">
-                        <thead class="text-xs uppercase tracking-wider text-gray-500">
-                            <tr>
-                                <th class="px-6 py-4">ID</th>
-                                <th class="px-6 py-4">Category</th>
-                                <th class="px-6 py-4">Content</th>
-                                <th class="px-6 py-4 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="knowledge-table-body" class="divide-y divide-gray-800">
-                            <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">Loading knowledge entries...</td></tr>
-                        </tbody>
-                    </table>
+                <div class="stat-card">
+                    <div class="stat-icon">📢</div>
+                    <div class="stat-num">5</div>
+                    <div class="stat-label">Announcements</div>
                 </div>
-            </section>
-        </section>
-    </main>
+                <div class="stat-card">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-num">2</div>
+                    <div class="stat-label">Flagged Chats</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🤖</div>
+                    <div class="stat-num">1.8s</div>
+                    <div class="stat-label">Avg Response</div>
+                </div>
+            </div>
 
+            <!-- Quick Links -->
+            <div class="section-title">Quick Actions</div>
+            <div class="quick-links">
+                <a href="/admin/knowledge" class="quick-link">
+                    <span class="quick-link-icon">📚</span>
+                    <div>
+                        <div class="quick-link-text">Knowledge Base</div>
+                        <div class="quick-link-desc">Add or edit chatbot knowledge</div>
+                    </div>
+                </a>
+                <a href="/admin/uploads" class="quick-link">
+                    <span class="quick-link-icon">📤</span>
+                    <div>
+                        <div class="quick-link-text">Upload Documents</div>
+                        <div class="quick-link-desc">Add PDFs, DOCX, TXT files</div>
+                    </div>
+                </a>
+                <a href="/admin/chat-logs" class="quick-link">
+                    <span class="quick-link-icon">🔍</span>
+                    <div>
+                        <div class="quick-link-text">Review Chat Logs</div>
+                        <div class="quick-link-desc">Monitor AI conversations</div>
+                    </div>
+                </a>
+                <a href="/admin/announcements" class="quick-link">
+                    <span class="quick-link-icon">📢</span>
+                    <div>
+                        <div class="quick-link-text">Announcements</div>
+                        <div class="quick-link-desc">Create and manage announcements</div>
+                    </div>
+                </a>
+                <a href="/admin/ai-settings" class="quick-link">
+                    <span class="quick-link-icon">⚙️</span>
+                    <div>
+                        <div class="quick-link-text">AI Settings</div>
+                        <div class="quick-link-desc">View system configuration</div>
+                    </div>
+                </a>
+            </div>
 
-    <script>
-        const userRole = localStorage.getItem('participant_role');
-        if (userRole !== 'Organiser') {
-            alert('Unauthorized Access: Organisers Only');
-            window.location.href = '/onboarding';
-        }
-
-        async function fetchData() {
-            try {
-                const [analyticsRes, knowledgeRes] = await Promise.all([
-                    fetch('/api/v1/admin/analytics', {
-                        headers: { 'x-user-role': userRole || '' },
-                        cache: 'no-store'
-                    }),
-                    fetch('/api/v1/admin/knowledge', {
-                        headers: { 'x-user-role': userRole || '' },
-                        cache: 'no-store'
-                    })
-                ]);
-
-                if (!analyticsRes.ok || !knowledgeRes.ok) {
-                    throw new Error('Failed to load admin dashboard data.');
-                }
-
-                const analytics = await analyticsRes.json();
-                const knowledge = await knowledgeRes.json();
-
-                document.getElementById('stat-queries').innerText = analytics.total_queries || 0;
-                document.getElementById('stat-users').innerText = analytics.active_users || 0;
-                document.getElementById('stat-kb').innerText = knowledge.data ? knowledge.data.length : 0;
-                document.getElementById('stat-health').innerText = analytics.system_health || 'Offline';
-
-                const tbody = document.getElementById('knowledge-table-body');
-                if (!knowledge.data || knowledge.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-gray-500">No knowledge entries found.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = knowledge.data.map(item => `
-                    <tr class="border-b border-gray-800 hover:bg-gray-800/40">
-                        <td class="px-6 py-4 text-blue-400 font-mono text-sm">${item.id}</td>
-                        <td class="px-6 py-4 capitalize text-gray-300">${item.category}</td>
-                        <td class="px-6 py-4 text-gray-400 truncate max-w-xs">${item.content}</td>
-                        <td class="px-6 py-4 text-right">
-                            <button onclick="deleteEntry('${item.id}')" class="text-red-500 hover:text-red-400 p-2 rounded hover:bg-red-500/10 transition">Delete</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                console.error('Fetch Error:', err);
-                document.getElementById('stat-health').innerText = 'Offline';
-            }
-        }
-
-        document.getElementById('knowledge-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const status = document.getElementById('form-status');
-            status.innerHTML = '<p class="mt-4 text-blue-400 text-center">Adding to database...</p>';
-
-            const payload = {
-                text_id: document.getElementById('text_id').value,
-                category: document.getElementById('category').value,
-                content: document.getElementById('content').value
-            };
-
-            try {
-                const res = await fetch('/api/v1/admin/knowledge', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-user-role': localStorage.getItem('role') || ''
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
-                    status.innerHTML = '<p class="mt-4 text-emerald-400 text-center">Successfully added!</p>';
-                    e.target.reset();
-                    fetchData();
-                } else {
-                    const errorData = await res.json().catch(() => ({}));
-                    const errorMessage = errorData.detail || 'Failed to add knowledge.';
-                    status.innerHTML = `<p class="mt-4 text-red-400 text-center">${errorMessage}</p>`;
-                }
-            } catch (err) {
-                console.error('Submit Error:', err);
-                status.innerHTML = '<p class="mt-4 text-red-400 text-center">Network Error.</p>';
-            }
-        });
-
-        window.deleteEntry = async function(id) {
-            if (!confirm(`Delete ${id}?`)) return;
-
-            const response = await fetch(`/api/v1/admin/knowledge/${encodeURIComponent(id)}`, {
-                method: 'DELETE',
-                headers: { 'x-user-role': localStorage.getItem('role') || '' }
-            });
-
-            if (response.ok) {
-                fetchData();
-            } else {
-                const status = document.getElementById('form-status');
-                status.innerHTML = '<p class="mt-4 text-red-400 text-center">Failed to delete knowledge.</p>';
-            }
-        };
-
-        // Poll uncached metrics without registering the monitoring dashboard
-        // itself as a participant session.
-        window.addEventListener('load', async () => {
-            await fetchData();
-            window.setInterval(fetchData, 5000);
-        });
-    </script>
+            <!-- Recent Activity -->
+            <div class="section-title">Recent Activity</div>
+            <div class="activity-list">
+                <div class="activity-item">
+                    <span class="activity-dot green"></span>
+                    <span class="activity-text">New announcement published: "Team Photo Session"</span>
+                    <span class="activity-time">2h ago</span>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-dot purple"></span>
+                    <span class="activity-text">3 new documents uploaded to knowledge base</span>
+                    <span class="activity-time">4h ago</span>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-dot orange"></span>
+                    <span class="activity-text">Guardrails flagged a chat: inappropriate request blocked</span>
+                    <span class="activity-time">5h ago</span>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-dot green"></span>
+                    <span class="activity-text">AI Settings updated: embedding model changed</span>
+                    <span class="activity-time">1d ago</span>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-dot purple"></span>
+                    <span class="activity-text">RAG seed data loaded: 12 knowledge entries</span>
+                    <span class="activity-time">2d ago</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

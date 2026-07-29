@@ -138,6 +138,14 @@ async def announcements_page(request: Request):
     )
 
 
+@app.get("/admin/dashboard")
+async def admin_dashboard_page(request: Request):
+    """Admin dashboard - overview page."""
+    return templates.TemplateResponse(
+        request, "admin_dashboard.html", {"request": request, "active_admin": "dashboard"}
+    )
+
+
 @app.get("/admin/announcements")
 async def admin_announcements_page(request: Request):
     """Organiser announcement management console."""

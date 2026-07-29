@@ -1,0 +1,42 @@
+import core
+import guardrails
+import llm
+import nemoguardrails.library.self_check.input_check
+
+flow main
+  activate llm continuation
+  activate greeting
+
+# --- Greeting (exact match — no LLM call needed for simple hellos) ---
+
+flow greeting
+  user expressed greeting
+  bot express greeting
+
+flow user expressed greeting
+  user said "Hello"
+    or user said "hello"
+    or user said "Hello!"
+    or user said "hello!"
+    or user said "Hi"
+    or user said "hi"
+    or user said "Hi!"
+    or user said "hi!"
+    or user said "Hey"
+    or user said "hey"
+    or user said "Hey!"
+    or user said "hey!"
+    or user said "Good morning"
+    or user said "good morning"
+    or user said "Good evening"
+    or user said "good evening"
+    or user said "Good afternoon"
+    or user said "good afternoon"
+
+flow bot express greeting
+  bot say "Hello! I'm your IOAI 2027 AI Concierge. How can I help you today?"
+
+# --- Input Rails: LLM-based safety check on every user message ---
+
+flow input rails $input_text
+  self check input

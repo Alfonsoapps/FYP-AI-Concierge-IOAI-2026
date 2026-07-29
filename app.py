@@ -1,5 +1,5 @@
 """
-Entry point for running the AI Concierge application.
+Entry point for running the IOAI 2027 AI Concierge application.
 
 Usage:
     python app.py

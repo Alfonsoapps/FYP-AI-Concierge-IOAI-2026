@@ -1,14 +1,18 @@
 """
 Chat Router
 
-Handles the POST /chat endpoint for AI concierge interactions.
-This is the main entry point for user messages.
+Handles the POST /chat endpoint and WebSocket /ws/{user_id} for AI concierge
+interactions. Both paths use the shared RAG pipeline from ai_service, with
+NeMo Guardrails screening every user message for safety before the LLM responds.
 
-Workflow:
-    User sends POST /chat with a message
-    → This router validates the input
-    → Calls the NVIDIA service to get an AI response
-    → Returns the response as JSON
+Workflow (POST /chat and WebSocket):
+    User sends message
+    → NeMo Guardrails input rail checks message safety (lazy-loaded on first use)
+      - If blocked: return fixed refusal reply
+      - If unavailable: fall through to RAG pipeline without guardrails
+      - If safe: pass to RAG pipeline
+    → RAG pipeline generates grounded response
+    → Returns the AI-generated reply
 """
 
 import hashlib
@@ -31,9 +35,44 @@ _ANALYTICS_LOCK = threading.Lock()
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
 
+# Fixed refusal message returned when NeMo Guardrails blocks a message.
+_BLOCKED_REPLY = (
+    "I'm sorry, I'm not able to help with that. "
+    "Please ask me something related to IOAI 2027 or your stay in Singapore."
+)
+
 # Create a router with the "chat" tag (groups endpoints in Swagger docs)
 router = APIRouter(tags=["chat"])
 
+
+# ---------------------------------------------------------------------------
+# NeMo Guardrails helper (lazy-loaded on first call to avoid slow startup)
+# ---------------------------------------------------------------------------
+
+def _check_guardrails(user_message: str) -> str | None:
+    """
+    Screen a user message through NeMo Guardrails input rails.
+
+    Returns:
+        None  - guardrails unavailable, caller should proceed without them
+        ""    - message was blocked (empty string)
+        str   - guardrails produced a safe reply (use as the response)
+
+    Note: When guardrails are available, the full guardrails pipeline (input
+    rail + llm continuation) runs. If guardrails aren't available, we return
+    None and let the caller fall through to the normal RAG pipeline.
+    """
+    try:
+        from app.services.guardrails_service import generate_guarded_response
+        return generate_guarded_response(user_message)
+    except Exception as exc:
+        logger.warning("Guardrails check failed, proceeding without: %s", exc)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Analytics persistence (survives reloads)
+# ---------------------------------------------------------------------------
 
 def _analytics_connection() -> sqlite3.Connection:
     """Open the small local analytics database used across app reloads."""
@@ -55,9 +94,6 @@ def _initialize_analytics() -> None:
             "CREATE TABLE IF NOT EXISTS active_users "
             "(user_id TEXT PRIMARY KEY, last_seen REAL NOT NULL)"
         )
-        # Earlier builds stored raw header values (including the shared
-        # fallback 'anonymous'). They cannot be safely matched to hashed IDs
-        # and would briefly double-count after deployment, so discard them.
         connection.execute(
             "DELETE FROM active_users WHERE user_id NOT LIKE 'sha256:%'"
         )
@@ -124,9 +160,12 @@ def get_active_user_count(*, now: float | None = None) -> int:
 
 
 _initialize_analytics()
-# Compatibility export used by existing code; analytics reads the DB directly.
 TOTAL_QUERIES = get_total_queries()
 
+
+# ---------------------------------------------------------------------------
+# REST endpoints
+# ---------------------------------------------------------------------------
 
 @router.post("/chat/activity")
 async def chat_activity(payload: ActivityRequest) -> dict[str, str]:
@@ -142,6 +181,7 @@ async def chat(
 ) -> ChatResponse:
     """Answer the browser's REST chat request using the shared RAG pipeline."""
     user_message = request.message.strip()
+
     if not user_message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
@@ -150,12 +190,20 @@ async def chat(
         try:
             record_user_activity(x_user_id)
         except ValueError:
-            # Analytics is best-effort for legacy/non-browser chat clients.
             logger.debug("Ignoring invalid anonymous session header")
     logger.info("Received RAG chat message: %s", user_message[:100])
 
+    # --- NeMo Guardrails safety screen ---
+    guarded_reply = _check_guardrails(user_message)
+    if guarded_reply == "":
+        logger.info("Message blocked by NeMo Guardrails input rails.")
+        return ChatResponse(reply=_BLOCKED_REPLY)
+    if guarded_reply is not None and guarded_reply.strip():
+        logger.info("Guardrails reply generated (%d chars)", len(guarded_reply))
+        return ChatResponse(reply=guarded_reply)
+
+    # --- Standard RAG pipeline (guardrails unavailable or returned None) ---
     try:
-        # Admin ingestion and browser chat now share this exact RAG instance.
         reply = await chat_pipeline.generate_reply(user_message)
     except ValueError as exc:
         logger.error("Invalid chat request: %s", exc)
@@ -175,9 +223,9 @@ async def chat(
 
 
 # ---------------------------------------------------------------------------
-# Real-time WebSocket chat. The existing POST /chat endpoint above is retained
-# for teammate clients that still use request/response messaging.
+# Real-time WebSocket chat
 # ---------------------------------------------------------------------------
+
 class ConnectionManager:
     """Track sockets by pseudonymous session while deduplicating browser tabs."""
 
@@ -185,12 +233,10 @@ class ConnectionManager:
         self.active_connections: dict[str, set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, session_hash: str) -> None:
-        """Accept and register one socket under its browser session."""
         await websocket.accept()
         self.active_connections.setdefault(session_hash, set()).add(websocket)
 
     def disconnect(self, session_hash: str, websocket: WebSocket) -> None:
-        """Remove only the closing tab, retaining any sibling tab sockets."""
         sockets = self.active_connections.get(session_hash)
         if not sockets:
             return
@@ -220,11 +266,7 @@ async def websocket_chat(websocket: WebSocket, user_id: str) -> None:
             data = await websocket.receive_json()
             if not isinstance(data, dict):
                 await websocket.send_json(
-                    {
-                        "role": "system",
-                        "content": "The WebSocket message must be a JSON object.",
-                        "audio": None,
-                    }
+                    {"role": "system", "content": "The WebSocket message must be a JSON object.", "audio": None}
                 )
                 continue
 
@@ -235,23 +277,30 @@ async def websocket_chat(websocket: WebSocket, user_id: str) -> None:
 
             if payload is None or not str(payload).strip():
                 await websocket.send_json(
-                    {
-                        "role": "system",
-                        "content": "The payload must contain a non-empty message.",
-                        "audio": None,
-                    }
+                    {"role": "system", "content": "The payload must contain a non-empty message.", "audio": None}
                 )
                 continue
 
             user_text = str(payload).strip()
+
+            # --- NeMo Guardrails safety screen (WebSocket path) ---
+            guarded = _check_guardrails(user_text)
+            if guarded == "":
+                await websocket.send_json(
+                    {"role": "ai", "content": _BLOCKED_REPLY, "audio": None}
+                )
+                continue
+            if guarded is not None and guarded.strip():
+                await websocket.send_json(
+                    {"role": "ai", "content": guarded, "audio": None}
+                )
+                continue
+
+            # --- Standard RAG pipeline ---
             reply = await chat_pipeline.generate_reply(user_text)
             audio_data = await chat_pipeline.generate_audio(reply)
             await websocket.send_json(
-                {
-                    "role": "ai",
-                    "content": reply,
-                    "audio": audio_data["audio_base64"],
-                }
+                {"role": "ai", "content": reply, "audio": audio_data["audio_base64"]}
             )
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected for anonymous session")
@@ -259,17 +308,10 @@ async def websocket_chat(websocket: WebSocket, user_id: str) -> None:
         logger.exception("WebSocket chat failed: %s", exc)
         try:
             await websocket.send_json(
-                {
-                    "role": "system",
-                    "content": "The concierge could not process that message.",
-                    "audio": None,
-                }
+                {"role": "system", "content": "The concierge could not process that message.", "audio": None}
             )
         except Exception:
-            logger.debug(
-                "Unable to send WebSocket error response",
-                exc_info=True,
-            )
+            logger.debug("Unable to send WebSocket error response", exc_info=True)
     finally:
         manager.disconnect(session_hash, websocket)
         logger.info("WebSocket state cleaned up for anonymous session")

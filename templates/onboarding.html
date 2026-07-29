@@ -179,8 +179,15 @@
                     <option value="Student Participant">Student Participant</option>
                     <option value="Team Leader">Team Leader</option>
                     <option value="Observer">Observer</option>
+                    <option value="Organiser">Organiser (Admin)</option>
                 </select>
                 <div class="error-msg">Please select your role.</div>
+            </div>
+
+            <div class="form-group" id="group-admin-password" style="display:none;">
+                <label for="field-admin-password">Admin Password</label>
+                <input type="password" id="field-admin-password" placeholder="Enter admin password">
+                <div class="error-msg">Incorrect admin password.</div>
             </div>
 
             <div class="form-group" id="group-country">
@@ -206,6 +213,19 @@
     </div>
 
     <script>
+        const ADMIN_PASSWORD = 'IOAI-ADMIN-2027';
+
+        // Show/hide admin password field based on role selection
+        document.getElementById('field-role').addEventListener('change', function() {
+            const pwGroup = document.getElementById('group-admin-password');
+            if (this.value === 'Organiser') {
+                pwGroup.style.display = 'block';
+            } else {
+                pwGroup.style.display = 'none';
+                pwGroup.classList.remove('has-error');
+            }
+        });
+
         document.getElementById('onboarding-form').addEventListener('submit', function(e) {
             e.preventDefault();
 
@@ -237,6 +257,15 @@
                 valid = false;
             }
 
+            // Admin password check
+            if (role === 'Organiser') {
+                const pw = document.getElementById('field-admin-password').value;
+                if (pw !== ADMIN_PASSWORD) {
+                    document.getElementById('group-admin-password').classList.add('has-error');
+                    valid = false;
+                }
+            }
+
             if (!valid) return;
 
             // Save to localStorage
@@ -245,8 +274,12 @@
             localStorage.setItem('participant_country', country);
             localStorage.setItem('participant_language', language);
 
-            // Redirect to avatar setup
-            window.location.href = '/avatar-setup';
+            // Redirect: admin goes to dashboard, others to avatar setup
+            if (role === 'Organiser') {
+                window.location.href = '/admin';
+            } else {
+                window.location.href = '/avatar-setup';
+            }
         });
 
         // Check if already onboarded — show info message

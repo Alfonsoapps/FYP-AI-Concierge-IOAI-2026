@@ -107,7 +107,7 @@
 
 
     <script>
-        const userRole = localStorage.getItem('role');
+        const userRole = localStorage.getItem('participant_role');
         if (userRole !== 'Organiser') {
             alert('Unauthorized Access: Organisers Only');
             window.location.href = '/onboarding';

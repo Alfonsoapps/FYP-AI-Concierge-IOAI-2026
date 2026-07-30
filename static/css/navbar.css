@@ -111,11 +111,12 @@
         right: 8px;
         transform: none;
         width: auto;
-        padding: 6px 8px;
+        padding: 6px 6px;
+        gap: 2px;
     }
 
     .nav-item {
-        padding: 6px 10px;
+        padding: 6px 6px;
     }
 
     .nav-item svg {
@@ -124,12 +125,23 @@
     }
 
     .nav-item span {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
     }
 
     .nav-item-center .nav-center-icon {
         width: 36px;
         height: 36px;
         margin-top: -10px;
+    }
+}
+
+
+/* Ultra-compact: hide labels below 400px for 8+ nav items */
+@media (max-width: 400px) {
+    .nav-item span {
+        display: none;
+    }
+    .nav-item {
+        padding: 8px 8px;
     }
 }

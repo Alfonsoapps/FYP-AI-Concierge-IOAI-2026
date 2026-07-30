@@ -96,6 +96,13 @@ async def _init_team_safety():
     team_safety_service.seed_sample_data()
 
 
+@app.on_event("startup")
+async def _init_document_registry():
+    """Initialize the document registry database."""
+    from app.services.document_registry import init_db
+    init_db()
+
+
 # ============================================================
 # PAGE ROUTES
 # ============================================================
@@ -318,6 +325,17 @@ async def upload_documents(request: Request):
             # Clean up temp file
             delete_temp_file(saved_path)
 
+            # Record in persistent registry
+            from app.services.document_registry import add_document
+            size_str = f"{size_bytes / 1024:.0f} KB" if size_bytes < 1024 * 1024 else f"{size_bytes / (1024*1024):.1f} MB"
+            add_document(
+                filename=file.filename,
+                file_type=ext.lstrip('.'),
+                size_display=size_str,
+                chunks=len(chunks),
+                chars=len(text_content),
+            )
+
             processed += 1
             results.append({
                 "file": file.filename,
@@ -334,6 +352,22 @@ async def upload_documents(request: Request):
         "processed": processed,
         "results": results,
     }
+
+
+@app.get("/api/admin/documents")
+async def list_documents():
+    """Return all registered uploaded documents."""
+    from app.services.document_registry import get_all_documents
+    return {"documents": get_all_documents()}
+
+
+@app.delete("/api/admin/documents/{doc_id}")
+async def remove_document(doc_id: int):
+    """Delete a document record from the registry."""
+    from app.services.document_registry import delete_document
+    if delete_document(doc_id):
+        return {"status": "success"}
+    return {"status": "not_found"}
 
 
 # Advanced RAG + audio WebSocket endpoint. This additional prefixed mounting

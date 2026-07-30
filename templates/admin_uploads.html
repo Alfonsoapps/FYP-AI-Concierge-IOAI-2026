@@ -116,8 +116,30 @@
     </div>
 
     <script>
-        // Sample uploaded documents — starts empty (loaded from server in future)
+        // Documents loaded from persistent registry
         let documents = [];
+
+        // Load existing documents on page load
+        async function loadDocuments() {
+            try {
+                const res = await fetch('/api/admin/documents');
+                const data = await res.json();
+                if (data.documents) {
+                    documents = data.documents.map(d => ({
+                        id: d.id,
+                        name: d.filename,
+                        type: d.file_type,
+                        size: d.chunks ? d.chunks + ' chunks' : d.size_display,
+                        date: d.uploaded_at ? d.uploaded_at.split('T')[0] : '',
+                        status: d.status,
+                    }));
+                    renderTable();
+                }
+            } catch (e) {
+                console.debug('Could not load documents:', e);
+            }
+        }
+        loadDocuments();
 
         const fileInput = document.getElementById('file-input');
         const uploadBtn = document.getElementById('upload-btn');
@@ -234,7 +256,11 @@
         }
 
         function removeDoc(index) {
-            if (confirm('Remove this document?')) {
+            if (confirm('Remove this document from the registry?')) {
+                const doc = documents[index];
+                if (doc && doc.id) {
+                    fetch('/api/admin/documents/' + doc.id, { method: 'DELETE' }).catch(() => {});
+                }
                 documents.splice(index, 1);
                 renderTable();
             }

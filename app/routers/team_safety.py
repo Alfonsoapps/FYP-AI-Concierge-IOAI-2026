@@ -213,3 +213,44 @@ async def api_my_team(user: Optional[str] = Query(default=None)):
         raise HTTPException(status_code=400, detail=str(e))
     except svc.SafetyNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ------------------------------------------------------------------
+# GPS Location tracking (F - Location Map feature)
+# ------------------------------------------------------------------
+
+class LocationBody(BaseModel):
+    participant_name: str = Field(..., min_length=1, max_length=100)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+
+
+@router.post("/api/team/location")
+async def api_update_location(body: LocationBody):
+    """Store or update a participant's GPS coordinates."""
+    try:
+        return svc.update_location(body.participant_name, body.latitude, body.longitude)
+    except svc.SafetyValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/team/locations")
+async def api_team_locations(leader: Optional[str] = Query(default=None)):
+    """Return GPS locations for all team members (Team Leader only)."""
+    if not leader:
+        raise HTTPException(status_code=400, detail="leader query parameter required.")
+    try:
+        return {"locations": svc.get_team_locations(leader)}
+    except svc.SafetyValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/team/my-location")
+async def api_my_location(user: Optional[str] = Query(default=None)):
+    """Return a participant's own stored location."""
+    if not user:
+        raise HTTPException(status_code=400, detail="user query parameter required.")
+    loc = svc.get_my_location(user)
+    if loc is None:
+        return {"location": None}
+    return {"location": loc}

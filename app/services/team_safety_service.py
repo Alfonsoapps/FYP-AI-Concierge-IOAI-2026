@@ -552,3 +552,56 @@ def get_my_team(participant_name: str) -> Dict:
         "leader_name": team.get("leader_name", ""),
         "members": teammates,
     }
+
+
+# ------------------------------------------------------------------
+# GPS Location tracking (in-memory store)
+# ------------------------------------------------------------------
+
+_locations: Dict[str, Dict] = {}
+
+
+def update_location(participant_name: str, latitude: float, longitude: float) -> Dict:
+    """Store or update a participant's GPS coordinates."""
+    name = (participant_name or "").strip()
+    if not name:
+        raise SafetyValidationError("participant_name is required.")
+    if not (-90 <= latitude <= 90):
+        raise SafetyValidationError("latitude must be between -90 and 90.")
+    if not (-180 <= longitude <= 180):
+        raise SafetyValidationError("longitude must be between -180 and 180.")
+
+    now = _now_iso()
+    with _lock:
+        _locations[name.lower()] = {
+            "participant_name": name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "updated_at": now,
+        }
+    return _locations[name.lower()]
+
+
+def get_my_location(participant_name: str) -> Optional[Dict]:
+    """Return a participant's stored location, or None if not found."""
+    name = (participant_name or "").strip().lower()
+    if not name:
+        return None
+    with _lock:
+        return _locations.get(name)
+
+
+def get_team_locations(leader_name: str) -> List[Dict]:
+    """Return GPS locations for all members of a leader's team who have location data."""
+    _ensure_seeded()
+    leader = (leader_name or "").strip()
+
+    # Get members for this leader
+    members = list_members(leader_name=leader)
+    result = []
+    with _lock:
+        for m in members:
+            loc = _locations.get(m["name"].lower())
+            if loc:
+                result.append(loc)
+    return result

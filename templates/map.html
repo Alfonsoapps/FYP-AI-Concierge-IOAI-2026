@@ -485,6 +485,146 @@
                 }, 300);
             }
         })();
+
+        // ============================================================
+        // LIVE LOCATION TRACKING
+        // ============================================================
+        (function() {
+            const userName = localStorage.getItem('participant_name') || '';
+            const userRole = localStorage.getItem('participant_role') || '';
+            if (!userName) return;
+
+            let selfMarker = null;
+            const teamMarkers = {};
+            const REFRESH_INTERVAL = 30000; // 30 seconds
+
+            // Self pin: blue pulsing circle
+            const selfIcon = L.divIcon({
+                className: '',
+                html: '<div style="width:32px;height:32px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px rgba(59,130,246,0.6);animation:pulse 2s infinite;"></div>',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -18]
+            });
+
+            // Team pin: purple circle (leader only)
+            const teamIcon = L.divIcon({
+                className: '',
+                html: '<div style="width:28px;height:28px;background:#7c3aed;border:3px solid #a78bfa;border-radius:50%;box-shadow:0 2px 8px rgba(124,58,237,0.5);"></div>',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14],
+                popupAnchor: [0, -16]
+            });
+
+            // Add pulsing CSS animation
+            const style = document.createElement('style');
+            style.textContent = '@keyframes pulse{0%,100%{box-shadow:0 0 12px rgba(59,130,246,0.6)}50%{box-shadow:0 0 24px rgba(59,130,246,0.9)}}';
+            document.head.appendChild(style);
+
+            // Send location to backend
+            function sendLocation(lat, lng) {
+                fetch('/api/team/location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ participant_name: userName, latitude: lat, longitude: lng }),
+                }).catch(() => {});
+            }
+
+            // Update self pin on map
+            function updateSelfPin(lat, lng) {
+                if (selfMarker) {
+                    selfMarker.setLatLng([lat, lng]);
+                } else {
+                    selfMarker = L.marker([lat, lng], { icon: selfIcon, zIndexOffset: 1000 })
+                        .addTo(map)
+                        .bindPopup('<strong style="color:#3b82f6;">You are here</strong>');
+                }
+            }
+
+            // Fetch and display team member locations (leader only)
+            function loadTeamLocations() {
+                if (userRole !== 'Team Leader') return;
+                fetch('/api/team/locations?leader=' + encodeURIComponent(userName))
+                    .then(r => r.json())
+                    .then(data => {
+                        const locations = data.locations || [];
+                        const seen = new Set();
+                        locations.forEach(loc => {
+                            // Skip self
+                            if (loc.participant_name.toLowerCase() === userName.toLowerCase()) return;
+                            const key = loc.participant_name.toLowerCase();
+                            seen.add(key);
+
+                            const timeAgo = getTimeAgo(loc.updated_at);
+                            const popupContent = '<strong style="color:#a78bfa;">' + escHtml(loc.participant_name) + '</strong><br><span style="color:#8080a0;font-size:0.8rem;">' + timeAgo + '</span>';
+
+                            if (teamMarkers[key]) {
+                                teamMarkers[key].setLatLng([loc.latitude, loc.longitude]);
+                                teamMarkers[key].setPopupContent(popupContent);
+                            } else {
+                                teamMarkers[key] = L.marker([loc.latitude, loc.longitude], { icon: teamIcon, zIndexOffset: 500 })
+                                    .addTo(map)
+                                    .bindPopup(popupContent);
+                            }
+                        });
+                        // Remove markers for members no longer reporting
+                        Object.keys(teamMarkers).forEach(key => {
+                            if (!seen.has(key)) {
+                                map.removeLayer(teamMarkers[key]);
+                                delete teamMarkers[key];
+                            }
+                        });
+                    })
+                    .catch(() => {});
+            }
+
+            function getTimeAgo(isoStr) {
+                if (!isoStr) return 'Unknown';
+                const diff = (Date.now() - new Date(isoStr).getTime()) / 1000;
+                if (diff < 60) return 'Just now';
+                if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+                if (diff < 86400) return Math.floor(diff / 3600) + ' hr ago';
+                return Math.floor(diff / 86400) + ' days ago';
+            }
+
+            function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+            // Notification bar for denied geolocation
+            function showGeoNotice() {
+                const notice = document.createElement('div');
+                notice.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(14,14,32,0.95);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;padding:10px 20px;border-radius:10px;font-size:0.8rem;z-index:1100;cursor:pointer;';
+                notice.textContent = '📍 Location unavailable — enable GPS for live tracking';
+                notice.onclick = () => notice.remove();
+                document.body.appendChild(notice);
+                setTimeout(() => notice.remove(), 6000);
+            }
+
+            // Start geolocation
+            if (navigator.geolocation) {
+                function onPosition(pos) {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    updateSelfPin(lat, lng);
+                    sendLocation(lat, lng);
+                }
+                function onError() { showGeoNotice(); }
+
+                navigator.geolocation.getCurrentPosition(onPosition, onError, { enableHighAccuracy: true, timeout: 10000 });
+
+                // Periodic updates
+                setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(onPosition, () => {}, { enableHighAccuracy: true, timeout: 10000 });
+                }, REFRESH_INTERVAL);
+            } else {
+                showGeoNotice();
+            }
+
+            // Team locations (leader only) — load immediately and refresh
+            if (userRole === 'Team Leader') {
+                setTimeout(loadTeamLocations, 2000);
+                setInterval(loadTeamLocations, REFRESH_INTERVAL);
+            }
+        })();
     </script>
 </body>
 </html>

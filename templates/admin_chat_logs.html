@@ -66,20 +66,20 @@
             <!-- Stats -->
             <div class="stats-row">
                 <div class="stat-card">
-                    <div class="stat-num" id="stat-total">47</div>
+                    <div class="stat-num" id="stat-total">0</div>
                     <div class="stat-label">Total Chats</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-num" id="stat-today">12</div>
+                    <div class="stat-num" id="stat-today">0</div>
                     <div class="stat-label">Today</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-num" id="stat-avg">1.8s</div>
+                    <div class="stat-num" id="stat-avg">–</div>
                     <div class="stat-label">Avg Response</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-num" id="stat-flagged">2</div>
-                    <div class="stat-label">Flagged</div>
+                    <div class="stat-num" id="stat-flagged">0</div>
+                    <div class="stat-label">🚩 Flagged</div>
                 </div>
             </div>
 
@@ -98,7 +98,7 @@
                 const stats = data.stats || {};
                 document.getElementById('stat-total').textContent = stats.total_conversations || 0;
                 document.getElementById('stat-today').textContent = stats.today || 0;
-                document.getElementById('stat-flagged').textContent = stats.with_files || 0;
+                document.getElementById('stat-flagged').textContent = stats.flagged || 0;
                 // Calculate avg response time from logs
                 const logs = data.logs || [];
                 if (logs.length > 0) {
@@ -107,9 +107,6 @@
                 } else {
                     document.getElementById('stat-avg').textContent = '–';
                 }
-
-                // Update stat labels
-                document.querySelector('#stat-flagged').closest('.stat-card').querySelector('.stat-label').textContent = 'With Files';
 
                 renderLogs(logs);
             } catch (e) {
@@ -126,22 +123,36 @@
             }
 
             list.innerHTML = logs.map(log => {
-                const hasFile = log.has_file ? ' flagged' : '';
+                const isFlagged = log.flagged === 1;
+                const cardClass = isFlagged ? ' flagged' : '';
                 const timeStr = log.timestamp || '';
                 const sessionShort = (log.session_id || 'anon').substring(0, 12) + '…';
                 const respTime = log.response_time_ms ? (log.response_time_ms / 1000).toFixed(1) + 's' : '–';
 
+                let badges = '';
+                if (isFlagged) {
+                    badges += '<span class="guardrail-badge guardrail-flag">🚩 Flagged</span>';
+                    if (log.flag_reason) {
+                        badges += '<span class="log-meta-item" style="color:#ef4444;">' + esc(log.flag_reason) + '</span>';
+                    }
+                } else {
+                    badges += '<span class="guardrail-badge guardrail-pass">✓ Clean</span>';
+                }
+                if (log.filename) {
+                    badges += '<span class="guardrail-badge guardrail-na">📎 ' + esc(log.filename) + '</span>';
+                }
+
                 return `
-                <div class="log-card${hasFile}">
+                <div class="log-card${cardClass}">
                     <div class="log-header">
-                        <span class="log-user">Session: ${esc(sessionShort)}</span>
+                        <span class="log-user">${isFlagged ? '🚩 ' : ''}Session: ${esc(sessionShort)}</span>
                         <span class="log-time">${esc(timeStr)}</span>
                     </div>
                     <div class="log-question">${esc(log.user_message)}</div>
                     <div class="log-response">${esc(log.ai_response).substring(0, 300)}${log.ai_response.length > 300 ? '…' : ''}</div>
                     <div class="log-meta">
                         <span class="log-meta-item">⏱ ${respTime}</span>
-                        ${log.filename ? '<span class="guardrail-badge guardrail-flag">📎 ' + esc(log.filename) + '</span>' : '<span class="guardrail-badge guardrail-pass">Text only</span>'}
+                        ${badges}
                     </div>
                 </div>`;
             }).join('');

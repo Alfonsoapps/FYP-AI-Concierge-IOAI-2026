@@ -80,7 +80,7 @@
             if (activeStatus !== 'all') {
                 url += '?status=' + encodeURIComponent(activeStatus);
             }
-            TeamSafety.getJSON(url)
+            TeamSafety.getJSON(TeamSafety.withLeaderParam(url))
                 .then(data => renderMembers(data.members))
                 .catch(() => {});
         }

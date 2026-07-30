@@ -26,6 +26,20 @@
         </svg>
         <span>Schedule</span>
     </a>
+    <a href="/safety" class="nav-item {{ 'active' if active_page == 'safety' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/>
+            <path d="M12 8v4m0 4h.01"/>
+        </svg>
+        <span>Safety</span>
+    </a>
+    <a href="/explore" class="nav-item {{ 'active' if active_page == 'explore' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+            <path d="M16 8l-2.5 6L8 16l2.5-6L16 8z"/>
+        </svg>
+        <span>Explore</span>
+    </a>
     <a href="/team/dashboard" class="nav-item {{ 'active' if active_page == 'team' else '' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 108 0 4 4 0 00-8 0zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>

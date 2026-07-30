@@ -97,121 +97,152 @@
 <body>
     <div class="team-container">
         <!-- Content will be injected by JS based on role -->
-        <div id="team-content"></div>
+        <div id="team-content">
+            <div class="page-header"><h1>Team</h1></div>
+            <div class="access-denied"><p>Loading your team...</p></div>
+        </div>
     </div>
 
     <script>
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s == null ? '' : String(s);
+            return d.innerHTML;
+        }
+
+        function statusBadgeFor(status) {
+            const map = {
+                'Safe': 'status-present',
+                'Pending Check-in': 'status-busy',
+                'SOS Active': 'status-offline',
+            };
+            return map[status] || 'status-offline';
+        }
+
+        function fmtCheckIn(iso) {
+            if (!iso) return 'No check-in yet';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return escapeHtml(iso);
+            return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function memberRow(m, isLeaderRow) {
+            return `
+                <div class="participant-item">
+                    <div class="participant-avatar">👤</div>
+                    <div class="participant-info">
+                        <div class="participant-name">${escapeHtml(m.name)}</div>
+                        <div class="participant-role">${isLeaderRow ? 'Team Leader' : escapeHtml(m.audience_category || 'Participant')} · ${escapeHtml(fmtCheckIn(m.last_check_in))}</div>
+                    </div>
+                    <span class="status-badge ${statusBadgeFor(m.status)}">${escapeHtml(m.status)}</span>
+                </div>`;
+        }
+
         const role = localStorage.getItem('participant_role') || '';
-        const name = localStorage.getItem('participant_name') || 'Participant';
-        const country = localStorage.getItem('participant_country') || 'Singapore';
+        const name = localStorage.getItem('participant_name') || '';
+        const country = localStorage.getItem('participant_country') || '';
 
         const content = document.getElementById('team-content');
 
-        if (role !== 'Team Leader') {
-            // Show access denied
+        function renderAccessDenied(message) {
             content.innerHTML = `
-                <div class="page-header">
-                    <h1>Team</h1>
-                </div>
+                <div class="page-header"><h1>Team</h1></div>
                 <div class="access-denied">
                     <div class="access-denied-icon">🔒</div>
-                    <h2>Team Leader Access Only</h2>
-                    <p>This page is available only for Team Leaders.</p>
-                </div>
-            `;
+                    <h2>Team Not Available</h2>
+                    <p>${escapeHtml(message)}</p>
+                </div>`;
+        }
+
+        if (!name || !role) {
+            window.location.href = '/onboarding';
+        } else if (role === 'Team Leader') {
+            // Team Leader view: real roster for the delegation they lead.
+            fetch('/api/team/dashboard?leader=' + encodeURIComponent(name))
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(dash => {
+                    fetch('/api/team/members?leader=' + encodeURIComponent(name))
+                        .then(r => r.ok ? r.json() : Promise.reject())
+                        .then(data => {
+                            const members = data.members || [];
+                            const rows = members.length
+                                ? members.map(m => memberRow(m, false)).join('')
+                                : `<div class="participant-item"><div class="participant-info"><div class="participant-role">No participants have registered under your delegation yet.</div></div></div>`;
+
+                            content.innerHTML = `
+                                <div class="page-header">
+                                    <h1>Team</h1>
+                                    <p>Manage your delegation and team members.</p>
+                                </div>
+                                <div class="delegation-header">
+                                    <div class="delegation-flag">🏳️</div>
+                                    <div class="delegation-name">${escapeHtml(country || 'Your')} Delegation</div>
+                                    <div class="delegation-meta">
+                                        <span>Team Leader: ${escapeHtml(name)}</span>
+                                        <span>•</span>
+                                        <span>${members.length} Participant${members.length === 1 ? '' : 's'}</span>
+                                    </div>
+                                </div>
+                                <div class="team-card">
+                                    <div class="team-card-title">Team Members</div>
+                                    ${rows}
+                                </div>
+                                <div class="team-card">
+                                    <div class="team-card-title">Manage</div>
+                                    <div class="schedule-item"><a href="/team/dashboard" style="color:#a78bfa;text-decoration:none;">→ Full Dashboard (welfare alerts, stats)</a></div>
+                                    <div class="schedule-item"><a href="/team/manage" style="color:#a78bfa;text-decoration:none;">→ Team Management (filter by status)</a></div>
+                                    <div class="schedule-item"><a href="/team/sos" style="color:#a78bfa;text-decoration:none;">→ SOS Management</a></div>
+                                </div>`;
+                        })
+                        .catch(() => renderAccessDenied('Could not load your team roster right now.'));
+                })
+                .catch(() => renderAccessDenied('Could not load your team dashboard right now.'));
         } else {
-            // Show full team page
-            content.innerHTML = `
-                <div class="page-header">
-                    <h1>Team</h1>
-                    <p>Manage your delegation and team members.</p>
-                </div>
+            // Non-leader view: read-only view of the participant's own team.
+            fetch('/api/team/my-team?participant_name=' + encodeURIComponent(name))
+                .then(r => {
+                    if (r.status === 404) { return null; }
+                    return r.ok ? r.json() : Promise.reject();
+                })
+                .then(team => {
+                    if (!team) {
+                        content.innerHTML = `
+                            <div class="page-header">
+                                <h1>Team</h1>
+                                <p>You are not yet part of a delegation roster.</p>
+                            </div>
+                            <div class="access-denied">
+                                <div class="access-denied-icon">🧭</div>
+                                <h2>Not Registered Yet</h2>
+                                <p>Revisit onboarding to register with your delegation, or ask your Team Leader to confirm your details.</p>
+                            </div>`;
+                        return;
+                    }
+                    const members = team.members || [];
+                    const rows = members.length
+                        ? members.map(m => memberRow(m, m.name === team.leader_name)).join('')
+                        : `<div class="participant-item"><div class="participant-info"><div class="participant-role">No teammates registered yet.</div></div></div>`;
 
-                <!-- Delegation Header -->
-                <div class="delegation-header">
-                    <div class="delegation-flag">🏳️</div>
-                    <div class="delegation-name">${country} Delegation</div>
-                    <div class="delegation-meta">
-                        <span>Team Leader: ${name}</span>
-                        <span>•</span>
-                        <span>4 Participants</span>
-                    </div>
-                </div>
-
-                <!-- Participants -->
-                <div class="team-card">
-                    <div class="team-card-title">Team Members</div>
-                    <div class="participant-item">
-                        <div class="participant-avatar">👤</div>
-                        <div class="participant-info">
-                            <div class="participant-name">${name}</div>
-                            <div class="participant-role">Team Leader</div>
+                    content.innerHTML = `
+                        <div class="page-header">
+                            <h1>Team</h1>
+                            <p>See who else is on your delegation.</p>
                         </div>
-                        <span class="status-badge status-present">Present</span>
-                    </div>
-                    <div class="participant-item">
-                        <div class="participant-avatar">👤</div>
-                        <div class="participant-info">
-                            <div class="participant-name">Alex Chen</div>
-                            <div class="participant-role">Student Participant</div>
+                        <div class="delegation-header">
+                            <div class="delegation-flag">🏳️</div>
+                            <div class="delegation-name">${escapeHtml(team.country)} Delegation</div>
+                            <div class="delegation-meta">
+                                <span>Team Leader: ${escapeHtml(team.leader_name)}</span>
+                                <span>•</span>
+                                <span>${members.length} Participant${members.length === 1 ? '' : 's'}</span>
+                            </div>
                         </div>
-                        <span class="status-badge status-present">Present</span>
-                    </div>
-                    <div class="participant-item">
-                        <div class="participant-avatar">👤</div>
-                        <div class="participant-info">
-                            <div class="participant-name">Sarah Kim</div>
-                            <div class="participant-role">Student Participant</div>
-                        </div>
-                        <span class="status-badge status-busy">Busy</span>
-                    </div>
-                    <div class="participant-item">
-                        <div class="participant-avatar">👤</div>
-                        <div class="participant-info">
-                            <div class="participant-name">Raj Patel</div>
-                            <div class="participant-role">Student Participant</div>
-                        </div>
-                        <span class="status-badge status-offline">Offline</span>
-                    </div>
-                </div>
-
-                <!-- Delegation Schedule -->
-                <div class="team-card">
-                    <div class="team-card-title">Upcoming Delegation Activities</div>
-                    <div class="schedule-item">
-                        <div class="schedule-item-title">Team Leader Briefing</div>
-                        <div class="schedule-item-meta">🕐 Day 1 · 11:00 AM – 12:00 PM · Marina Bay Sands</div>
-                    </div>
-                    <div class="schedule-item">
-                        <div class="schedule-item-title">Team Networking Session</div>
-                        <div class="schedule-item-meta">🕐 Day 1 · 6:00 PM – 7:30 PM · SUTD</div>
-                    </div>
-                    <div class="schedule-item">
-                        <div class="schedule-item-title">AI Ethics Workshop</div>
-                        <div class="schedule-item-meta">🕐 Day 2 · 2:00 PM – 4:00 PM · NUS</div>
-                    </div>
-                </div>
-
-                <!-- Delegation Announcements -->
-                <div class="team-card">
-                    <div class="team-card-title">Delegation Announcements</div>
-                    <div class="announcement-item">
-                        <div class="announcement-title">Team Photo Session</div>
-                        <div class="announcement-body">All delegation members please gather at Marina Bay Sands lobby at 8:30 AM for the official team photo.</div>
-                        <div class="announcement-time">2 hours ago</div>
-                    </div>
-                    <div class="announcement-item">
-                        <div class="announcement-title">Uniform Reminder</div>
-                        <div class="announcement-body">Please wear official IOAI delegation uniforms for the Opening Ceremony tomorrow.</div>
-                        <div class="announcement-time">Yesterday</div>
-                    </div>
-                    <div class="announcement-item">
-                        <div class="announcement-title">Welcome Dinner Location</div>
-                        <div class="announcement-body">The welcome dinner will be at Level 57, Marina Bay Sands. Smart casual attire.</div>
-                        <div class="announcement-time">2 days ago</div>
-                    </div>
-                </div>
-            `;
+                        <div class="team-card">
+                            <div class="team-card-title">Team Members</div>
+                            ${rows}
+                        </div>`;
+                })
+                .catch(() => renderAccessDenied('Could not load your team right now.'));
         }
     </script>
 

@@ -88,7 +88,9 @@
         const role = localStorage.getItem('participant_role') || '';
         const user = localStorage.getItem('participant_name') || '';
         let viewMode = 'current';      // 'current' | 'history'
-        let announcements = [];
+        let announcements = [];        // current view (capped at 100, most recent)
+        let historyAnnouncements = []; // history view (uncapped, all previously targeted)
+        let historyLoaded = false;
 
         // Reveal the organiser management link for organisers.
         (function () {
@@ -111,18 +113,35 @@
             return d.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
 
-        async function load() {
+        function paramString() {
             const params = new URLSearchParams();
             if (role) params.set('role', role);
             if (user) params.set('user', user);
+            return params.toString();
+        }
+
+        async function load() {
             try {
-                const res = await fetch('/api/announcements?' + params.toString());
+                const res = await fetch('/api/announcements?' + paramString());
                 if (!res.ok) throw new Error('load failed');
                 announcements = await res.json();
                 document.getElementById('error-box').classList.remove('visible');
                 render();
                 // Mark all currently-shown announcements as read (delivery tracking).
                 markVisibleAsRead();
+            } catch (e) {
+                document.getElementById('error-box').classList.add('visible');
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/announcements/history?' + paramString());
+                if (!res.ok) throw new Error('load failed');
+                historyAnnouncements = await res.json();
+                historyLoaded = true;
+                document.getElementById('error-box').classList.remove('visible');
+                render();
             } catch (e) {
                 document.getElementById('error-box').classList.add('visible');
             }
@@ -146,10 +165,13 @@
             const empty = document.getElementById('empty');
             list.innerHTML = '';
 
-            // In "current" view, hide already-read non-critical items; history shows all.
-            let items = announcements;
+            // Current view: capped, unread-or-unacknowledged-critical items.
+            // History view: the full uncapped set of previously targeted announcements.
+            let items;
             if (viewMode === 'current') {
                 items = announcements.filter(a => !a.read_at || (a.ack_required && !a.acknowledged_at));
+            } else {
+                items = historyAnnouncements;
             }
 
             if (items.length === 0) {
@@ -213,8 +235,10 @@
                 });
                 if (!res.ok) throw new Error('ack failed');
                 const data = await res.json();
-                const target = announcements.find(a => a.id === id);
-                if (target) { target.acknowledged_at = data.acknowledged_at; target.read_at = target.read_at || data.acknowledged_at; }
+                [announcements, historyAnnouncements].forEach(list => {
+                    const target = list.find(a => a.id === id);
+                    if (target) { target.acknowledged_at = data.acknowledged_at; target.read_at = target.read_at || data.acknowledged_at; }
+                });
                 render();
             } catch (e) {
                 btn.disabled = false;
@@ -233,7 +257,11 @@
             viewMode = 'history';
             document.getElementById('view-history').classList.add('active');
             document.getElementById('view-current').classList.remove('active');
-            render();
+            if (historyLoaded) {
+                render();
+            } else {
+                loadHistory();
+            }
         });
 
         load();

@@ -84,7 +84,8 @@ async def list_user_announcements(
     role: Optional[str] = Query(default=None),
     user: Optional[str] = Query(default=None),
 ):
-    """Published announcements targeted to the caller's resolved audience."""
+    """Published announcements targeted to the caller's resolved audience
+    (Announcement_Page — up to the 100 most recent, Requirement 5.1)."""
     try:
         return svc.list_for_user(role=role, participant_name=user)
     except Exception as e:  # pragma: no cover - defensive
@@ -92,11 +93,25 @@ async def list_user_announcements(
         raise HTTPException(status_code=500, detail="Could not load announcements.")
 
 
+@router.get("/api/announcements/history", response_model=List[AnnouncementOut])
+async def list_user_announcement_history(
+    role: Optional[str] = Query(default=None),
+    user: Optional[str] = Query(default=None),
+):
+    """All published announcements previously targeted to the caller,
+    including already-read ones, uncapped (Announcement_History, Requirement 5.2)."""
+    try:
+        return svc.list_history_for_user(role=role, participant_name=user)
+    except Exception as e:  # pragma: no cover - defensive
+        logger.error("list_user_announcement_history failed: %s", e)
+        raise HTTPException(status_code=500, detail="Could not load announcement history.")
+
+
 @router.post("/api/announcements/{announcement_id}/read")
 async def read_announcement(announcement_id: str, body: ActorBody):
     """Record that the caller has read the announcement."""
     try:
-        return svc.mark_read(announcement_id, body.participant_name)
+        return svc.mark_read(announcement_id, body.participant_name, body.role)
     except svc.AnnouncementValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except svc.AnnouncementNotFoundError as e:
@@ -109,7 +124,7 @@ async def read_announcement(announcement_id: str, body: ActorBody):
 async def acknowledge_announcement(announcement_id: str, body: ActorBody):
     """Acknowledge a critical announcement."""
     try:
-        return svc.acknowledge(announcement_id, body.participant_name)
+        return svc.acknowledge(announcement_id, body.participant_name, body.role)
     except svc.AnnouncementValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except svc.AnnouncementNotFoundError as e:

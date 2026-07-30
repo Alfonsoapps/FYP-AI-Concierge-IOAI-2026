@@ -20,6 +20,107 @@ logger = logging.getLogger(__name__)
 TEMP_AUDIO_DIR = "./app/data"
 
 
+def _safety_context() -> str:
+    """
+    Build a short, plain-text summary of emergency contacts and nearby
+    medical facilities so the concierge can provide safety guidance and
+    recommend nearby medical facilities (Requirements F6R4, F6R6).
+
+    Fails soft: returns an empty string if the safety directory is
+    unavailable, so a concierge reply is still generated.
+    """
+    try:
+        # Imported lazily to avoid a hard dependency during unrelated chats.
+        from app.services import team_safety_service as safety_svc
+
+        contacts = safety_svc.get_emergency_contacts()
+        facilities = safety_svc.get_medical_facilities()
+
+        lines = ["Emergency contacts:"]
+        for c in contacts:
+            lines.append(f"- {c['label']}: {c['phone']} ({c['notes']})")
+
+        lines.append("Nearby medical facilities:")
+        for f in facilities:
+            lines.append(
+                f"- {f['name']} ({f['category']}, near {f['near']}): "
+                f"{f['address']}, {f['phone']}"
+            )
+
+        return "\n".join(lines)
+    except Exception as e:  # pragma: no cover - defensive
+        logger.warning("Could not load safety context: %s", e)
+        return ""
+
+
+def _culture_context() -> str:
+    """
+    Build a short, plain-text summary of Singapore culture facts, food
+    recommendations, and etiquette tips so the concierge can proactively
+    answer participant-experience questions (Requirements F10R1, F10R2, F10R3).
+
+    Fails soft: returns an empty string if the Explore module is unavailable,
+    so a concierge reply is still generated.
+    """
+    try:
+        # Imported lazily to avoid a hard dependency during unrelated chats.
+        from app.services import explore_service as explore_svc
+
+        guide = explore_svc.get_culture_guide()
+
+        lines = ["Singapore culture facts:"]
+        for f in guide["culture_facts"]:
+            lines.append(f"- {f['title']}: {f['body']}")
+
+        lines.append("Local food recommendations:")
+        for f in guide["food_recommendations"]:
+            lines.append(f"- {f['dish']}: {f['description']} (Where: {f['where']})")
+
+        lines.append("Local etiquette tips:")
+        for t in guide["etiquette_tips"]:
+            lines.append(f"- {t['tip']}: {t['detail']}")
+
+        return "\n".join(lines)
+    except Exception as e:  # pragma: no cover - defensive
+        logger.warning("Could not load culture context: %s", e)
+        return ""
+
+
+def _announcement_context(role: str | None = None) -> str:
+    """
+    Build a short, plain-text summary of the latest published announcements so
+    the concierge can answer questions like "What have I missed?" or "Any
+    urgent updates?" (Requirement 10.6: AI Concierge uses the
+    Latest_Announcements_Endpoint data path).
+
+    Fails soft: returns an empty string if the announcement store is
+    unavailable, so a concierge reply is still generated (Requirement 10.7).
+    """
+    try:
+        # Imported lazily to avoid a hard dependency during unrelated chats.
+        from app.services import announcement_service as ann_svc
+
+        audience = ann_svc.normalize_role(role) if role else None
+        items = ann_svc.latest_published(audience=audience, limit=20)
+        if not items:
+            return ""
+
+        lines = []
+        for a in items:
+            urgent = " [CRITICAL]" if a.get("priority") == "Critical" else ""
+            ack = " (acknowledgement required)" if a.get("ack_required") else ""
+            lines.append(f"- {a['title']}{urgent}{ack}: {a['message']}")
+
+        return (
+            "Latest published announcements relevant to this user "
+            "(use these to answer questions about missed or urgent updates):\n"
+            + "\n".join(lines)
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        logger.warning("Could not load announcement context: %s", e)
+        return ""
+
+
 class ChatPipeline:
     """Generate source-grounded replies and concurrency-safe speech audio."""
 
@@ -40,7 +141,9 @@ CRITICAL INSTRUCTIONS:
 VERIFIED FACTS: Read the 'Verified Event Database' below. If it contains information relevant to the user's question, you MUST use it and prioritize it.
 MISSING FACTS: If the user asks about the IOAI event, schedule, or logistics, but the database is empty or lacks the answer, reply EXACTLY: 'I do not have that specific event information yet. Please check the Schedule tab.'
 GENERAL KNOWLEDGE: If the user asks a general question (e.g., science, translation, general Singapore tourism, or casual chat) that is clearly outside the scope of IOAI logistics, you may use your general knowledge to answer them helpfully.
-TONE: Be enthusiastic, concise, and youth-friendly. Keep answers brief (1-3 sentences).
+SAFETY: If the user describes an emergency, injury, illness, feeling unsafe, or being lost, calmly provide safety guidance first (e.g. advise contacting a team leader or calling the emergency numbers below), then reference the most relevant emergency contact or nearby medical facility from the 'Verified Event Database' if one is included. For life-threatening emergencies, tell the user to call 999 (Police) or 995 (Ambulance/Fire) immediately and use the in-app SOS button on the Safety tab.
+CULTURE: If the user asks about Singapore culture, local food recommendations, or local etiquette, use the culture facts, food recommendations, and etiquette tips included in the 'Verified Event Database' below, and mention they can find more on the Explore tab.
+TONE: Be enthusiastic, concise, and youth-friendly. Keep answers brief (1-3 sentences), except safety guidance may be up to 4 sentences.
 
 Verified Event Database: {context}""",
                 ),
@@ -71,27 +174,56 @@ Verified Event Database: {context}""",
             ]
         )
 
-    async def generate_reply(self, user_text: str) -> str:
+    async def generate_reply(self, user_text: str, role: str | None = None) -> str:
         """Generate a reply using retrieved facts or appropriate general knowledge."""
         try:
             context = await rag_db.retrieve_context(user_text)
 
-            # Always invoke the LLM. An explicit marker lets the prompt distinguish
-            # missing event facts from questions that permit general knowledge.
-            messages = self.prompt.format_messages(
-                context=(
-                    "No verified facts found for this query."
-                    if context is None
-                    or (
-                        isinstance(context, str)
-                        and (
-                            not context.strip()
-                            or context
-                            == "No verified knowledge-base sources matched this question."
-                        )
+            # An explicit marker lets the prompt distinguish missing event facts
+            # from questions that permit general knowledge.
+            rag_context = (
+                None
+                if context is None
+                or (
+                    isinstance(context, str)
+                    and (
+                        not context.strip()
+                        or context
+                        == "No verified knowledge-base sources matched this question."
                     )
-                    else context
-                ),
+                )
+                else context
+            )
+
+            # Blend in the latest published announcements relevant to the
+            # caller's role, so the concierge can answer questions about
+            # missed or urgent announcements (Requirement 10.6).
+            announcement_context = _announcement_context(role)
+
+            # Blend in emergency contacts and nearby medical facilities so the
+            # concierge can provide safety guidance (Requirements F6R4, F6R6).
+            safety_context = _safety_context()
+
+            # Blend in Singapore culture facts, food recommendations, and
+            # etiquette tips (Requirements F10R1, F10R2, F10R3).
+            culture_context = _culture_context()
+
+            extra_context = "\n\n".join(
+                c for c in (announcement_context, safety_context, culture_context) if c
+            )
+
+            if rag_context and extra_context:
+                combined_context = f"{rag_context}\n\n{extra_context}"
+            elif rag_context:
+                combined_context = rag_context
+            elif extra_context:
+                combined_context = extra_context
+            else:
+                combined_context = "No verified facts found for this query."
+
+            # Always invoke the LLM after successful retrieval.
+            messages = self.prompt.format_messages(
+                context=combined_context,
                 input=user_text,
             )
 

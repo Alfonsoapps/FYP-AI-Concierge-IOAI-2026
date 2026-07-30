@@ -33,9 +33,11 @@ from app.routers import chat
 from app.routers import tts
 from app.routers import announcements
 from app.routers import team_safety
+from app.routers import explore
 from app.routers.chat import router as chat_router
 from app.services import announcement_service
 from app.services import team_safety_service
+from app.services import explore_service
 
 # The RAG router depends on chromadb, which may be unavailable in some
 # environments (e.g. no prebuilt wheel for the running Python version).
@@ -70,14 +72,59 @@ app = FastAPI(
 # Jinja2 templates
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
-# Register API routers (chat, TTS, RAG, Announcements)
-app.include_router(chat.router)
-app.include_router(tts.router)
+def _router_path_signatures(router) -> set[tuple[str, frozenset[str]]]:
+    """(path, methods) signatures for every HTTP route declared on a router."""
+    signatures = set()
+    for route in router.routes:
+        methods = frozenset(getattr(route, "methods", None) or [])
+        signatures.add((route.path, methods))
+    return signatures
+
+
+# Registry of (path, methods) signatures already registered on `app`, tracked
+# explicitly because FastAPI wraps `include_router` results lazily and does
+# not eagerly flatten them into `app.routes`.
+_registered_route_signatures: set[tuple[str, frozenset[str]]] = set()
+
+
+def _include_router_no_collisions(app: FastAPI, router, *, module_name: str, **kwargs) -> None:
+    """
+    Register a router only if none of its (path, method) pairs collide with a
+    route already registered on the app. Colliding registrations fail
+    application startup instead of silently shadowing an existing endpoint
+    (Requirement 12.2).
+    """
+    incoming = _router_path_signatures(router)
+    colliding = {
+        path
+        for path, methods in incoming
+        if any(
+            path == existing_path and (methods & existing_methods)
+            for existing_path, existing_methods in _registered_route_signatures
+        )
+    }
+    if colliding:
+        raise RuntimeError(
+            f"Startup aborted: router '{module_name}' declares path(s) "
+            f"{sorted(colliding)} that collide with an already-registered route."
+        )
+    app.include_router(router, **kwargs)
+    _registered_route_signatures.update(incoming)
+
+
+# Register API routers (chat, TTS, RAG, Announcements). Registration order
+# matters: chat, TTS, and RAG are the pre-existing endpoints that must remain
+# reachable at their original paths; any later router (e.g. announcements)
+# that declares a colliding path fails startup rather than partially
+# registering (Requirement 12.1, 12.2).
+_include_router_no_collisions(app, chat.router, module_name="chat")
+_include_router_no_collisions(app, tts.router, module_name="tts")
 if _RAG_AVAILABLE:
-    app.include_router(rag.router)
-    app.include_router(admin.router, tags=["Admin"])
-app.include_router(announcements.router)
-app.include_router(team_safety.router)
+    _include_router_no_collisions(app, rag.router, module_name="rag")
+    _include_router_no_collisions(app, admin.router, module_name="admin", tags=["Admin"])
+_include_router_no_collisions(app, announcements.router, module_name="announcements")
+_include_router_no_collisions(app, team_safety.router, module_name="team_safety")
+_include_router_no_collisions(app, explore.router, module_name="explore")
 
 # Serve static assets (CSS, JS, Live2D models, images)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -92,8 +139,18 @@ async def _init_announcements():
 
 @app.on_event("startup")
 async def _init_team_safety():
-    """Seed the Team Leader + Safety in-memory store with sample data."""
-    team_safety_service.seed_sample_data()
+    """
+    No-op initialization hook for the Team Leader + Safety module. Production
+    no longer seeds fake team members; real delegation rosters are built up
+    as participants complete onboarding (see `team_safety_service.register_participant`).
+    """
+    pass
+
+
+@app.on_event("startup")
+async def _init_explore():
+    """Initialize the Explore module's completion/badge store."""
+    explore_service.init_db()
 
 
 @app.on_event("startup")

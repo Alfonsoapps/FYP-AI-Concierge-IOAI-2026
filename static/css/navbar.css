@@ -112,10 +112,11 @@
         transform: none;
         width: auto;
         padding: 6px 8px;
+        gap: 0;
     }
 
     .nav-item {
-        padding: 6px 10px;
+        padding: 6px 8px;
     }
 
     .nav-item svg {
@@ -131,5 +132,21 @@
         width: 36px;
         height: 36px;
         margin-top: -10px;
+    }
+}
+
+/* Extra-narrow phones: with 8 nav items, tighten further and hide labels so
+   icons stay tappable without horizontal scrolling or clipping. */
+@media (max-width: 400px) {
+    .nav-item {
+        padding: 6px;
+    }
+
+    .nav-item span {
+        display: none;
+    }
+
+    .nav-item-center .nav-center-icon {
+        margin-top: -8px;
     }
 }

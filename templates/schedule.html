@@ -130,6 +130,7 @@
     <div class="view-toggle">
         <button class="view-btn active" id="view-all">All Events</button>
         <button class="view-btn" id="view-my">My Schedule</button>
+        <button class="view-btn" id="view-delegation" hidden>My Delegation</button>
     </div>
 
     <div class="day-selector">
@@ -180,8 +181,26 @@
         // ============================================================
         let activeDay = '1';
         let activeCategory = 'all';
-        let viewMode = 'all'; // 'all' or 'my'
+        let viewMode = 'all'; // 'all', 'my', or 'delegation'
+        let delegationRoles = []; // populated for Team Leaders (F7R1)
         const participantRole = localStorage.getItem('participant_role') || '';
+        const participantName = localStorage.getItem('participant_name') || '';
+
+        // Team Leaders can view their delegation's schedule (which roles their
+        // assigned participants hold), not just their own role's events (F7R1).
+        if (participantRole.toLowerCase() === 'team leader' && participantName) {
+            const params = new URLSearchParams();
+            params.set('leader', participantName);
+            fetch('/api/team/delegation-audiences?' + params.toString())
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    // Audience categories map onto event.roles values used below.
+                    const mapping = { 'Students': 'Student Participant', 'Team Leaders': 'Team Leader', 'Observers': 'Observer', 'Volunteers': 'Volunteer' };
+                    delegationRoles = (data.audience_categories || []).map(c => mapping[c] || c);
+                    document.getElementById('view-delegation').hidden = false;
+                })
+                .catch(() => {});
+        }
 
         // ============================================================
         // RENDER
@@ -195,6 +214,8 @@
                 if (ev.day !== activeDay) return false;
                 if (activeCategory !== 'all' && ev.category !== activeCategory) return false;
                 if (viewMode === 'my' && participantRole && !ev.roles.includes(participantRole)) return false;
+                if (viewMode === 'delegation' && delegationRoles.length
+                    && !ev.roles.some(r => delegationRoles.includes(r))) return false;
                 return true;
             });
 
@@ -369,6 +390,7 @@
             viewMode = 'all';
             document.getElementById('view-all').classList.add('active');
             document.getElementById('view-my').classList.remove('active');
+            document.getElementById('view-delegation').classList.remove('active');
             renderEvents();
         });
 
@@ -376,6 +398,15 @@
             viewMode = 'my';
             document.getElementById('view-my').classList.add('active');
             document.getElementById('view-all').classList.remove('active');
+            document.getElementById('view-delegation').classList.remove('active');
+            renderEvents();
+        });
+
+        document.getElementById('view-delegation').addEventListener('click', () => {
+            viewMode = 'delegation';
+            document.getElementById('view-delegation').classList.add('active');
+            document.getElementById('view-all').classList.remove('active');
+            document.getElementById('view-my').classList.remove('active');
             renderEvents();
         });
 

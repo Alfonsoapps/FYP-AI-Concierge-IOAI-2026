@@ -226,7 +226,7 @@
             }
         });
 
-        document.getElementById('onboarding-form').addEventListener('submit', function(e) {
+        document.getElementById('onboarding-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const name = document.getElementById('field-name').value.trim();
@@ -273,6 +273,22 @@
             localStorage.setItem('participant_role', role);
             localStorage.setItem('participant_country', country);
             localStorage.setItem('participant_language', language);
+
+            // Register into the real delegation roster (Team / Safety module)
+            // so Team Leaders see actual signed-in participants, not fixtures.
+            // Organisers don't belong to a country delegation, so they're skipped.
+            // Awaited (but non-blocking on failure) so it completes before redirect.
+            if (role !== 'Organiser') {
+                try {
+                    await fetch('/api/team/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ participant_name: name, role: role, country: country }),
+                    });
+                } catch (err) {
+                    // Onboarding still completes even if registration fails.
+                }
+            }
 
             // Redirect: admin goes to dashboard, others to avatar setup
             if (role === 'Organiser') {

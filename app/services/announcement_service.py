@@ -384,10 +384,12 @@ def _published_for_audience(conn: sqlite3.Connection, user_category: str) -> Lis
     return rows
 
 
-def list_for_user(role: Optional[str], participant_name: Optional[str]) -> List[Dict]:
+def _list_targeted_for_user(role: Optional[str], participant_name: Optional[str]) -> List[Dict]:
     """
-    Return published announcements targeted to the user's resolved audience,
-    annotated with this user's read/acknowledged state (Requirements 4, 5, 7).
+    Shared retrieval: published announcements targeted to the user's resolved
+    audience, annotated with this user's read/acknowledged state, ordered by
+    published timestamp descending (Requirements 4, 5, 7). Uncapped; callers
+    apply their own limit.
     """
     user_category = normalize_role(role)
     name = (participant_name or "").strip()
@@ -414,13 +416,34 @@ def list_for_user(role: Optional[str], participant_name: Optional[str]) -> List[
         ann["read_at"] = rec["read_at"] if rec else None
         ann["acknowledged_at"] = rec["acknowledged_at"] if rec else None
         result.append(ann)
-    return result[:100]
+    return result
 
 
-def mark_read(announcement_id: str, participant_name: Optional[str]) -> Dict:
+def list_for_user(role: Optional[str], participant_name: Optional[str]) -> List[Dict]:
+    """
+    Announcement_Page: up to the 100 most recent published announcements
+    targeted to the user (Requirement 5.1).
+    """
+    return _list_targeted_for_user(role, participant_name)[:100]
+
+
+def list_history_for_user(role: Optional[str], participant_name: Optional[str]) -> List[Dict]:
+    """
+    Announcement_History: ALL published announcements previously targeted to
+    the user, including already-read ones, uncapped (Requirement 5.2).
+    """
+    return _list_targeted_for_user(role, participant_name)
+
+
+def mark_read(
+    announcement_id: str,
+    participant_name: Optional[str],
+    role: Optional[str] = None,
+) -> Dict:
     """
     Record a read timestamp for the user/announcement (Requirement 6).
-    Only applies when the announcement is published. Idempotent: keeps the
+    Only applies when the announcement is published and targeted to the
+    caller's resolved audience (Requirement 6.5). Idempotent: keeps the
     original read timestamp if one already exists.
     """
     name = (participant_name or "").strip()
@@ -430,6 +453,10 @@ def mark_read(announcement_id: str, participant_name: Optional[str]) -> Dict:
     ann = get_announcement(announcement_id)  # raises if missing
     if ann["status"] != "published":
         raise AnnouncementStateError("Cannot track reads on a non-published announcement.")
+    if not _audience_matches(ann["target_audience"], normalize_role(role)):
+        raise AnnouncementValidationError(
+            "This announcement is not targeted to the caller's audience."
+        )
 
     now = _now_iso()
     with _write_lock:
@@ -459,9 +486,15 @@ def mark_read(announcement_id: str, participant_name: Optional[str]) -> Dict:
     return {"announcement_id": announcement_id, "participant_name": name, "read": True}
 
 
-def acknowledge(announcement_id: str, participant_name: Optional[str]) -> Dict:
+def acknowledge(
+    announcement_id: str,
+    participant_name: Optional[str],
+    role: Optional[str] = None,
+) -> Dict:
     """
     Record an acknowledged timestamp for a critical announcement (Requirement 7).
+    Only applies when the announcement is targeted to the caller's resolved
+    audience (Requirement 6.5, applied consistently to acknowledgement tracking).
     """
     name = (participant_name or "").strip()
     if not name or len(name) > NAME_MAX:
@@ -470,6 +503,10 @@ def acknowledge(announcement_id: str, participant_name: Optional[str]) -> Dict:
     ann = get_announcement(announcement_id)  # raises if missing
     if not ann["ack_required"]:
         raise AnnouncementValidationError("This announcement does not require acknowledgement.")
+    if not _audience_matches(ann["target_audience"], normalize_role(role)):
+        raise AnnouncementValidationError(
+            "This announcement is not targeted to the caller's audience."
+        )
 
     now = _now_iso()
     already = False
@@ -567,6 +604,41 @@ def latest_published(audience: Optional[str] = None, limit: int = 20) -> List[Di
     finally:
         conn.close()
     return [_row_to_announcement(r) for r in rows]
+
+
+def get_ack_status_for_participants(
+    announcement_id: str, participant_names: List[str]
+) -> List[Dict]:
+    """
+    Return per-participant read/acknowledged status for a given announcement
+    and an explicit list of names (Requirement F7R3: team leaders monitor
+    acknowledgement of critical notices by their own participants, as opposed
+    to the organiser-only aggregate statistics in `get_statistics`).
+    """
+    get_announcement(announcement_id)  # raises if missing
+
+    conn = _connect()
+    try:
+        rows = conn.execute(
+            "SELECT participant_name, read_at, acknowledged_at FROM announcement_recipients "
+            "WHERE announcement_id = ?",
+            (announcement_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    rec_map = {r["participant_name"]: r for r in rows}
+    result = []
+    for name in participant_names:
+        rec = rec_map.get(name)
+        result.append(
+            {
+                "participant_name": name,
+                "read_at": rec["read_at"] if rec else None,
+                "acknowledged_at": rec["acknowledged_at"] if rec else None,
+            }
+        )
+    return result
 
 
 def get_statistics(announcement_id: str) -> Dict:

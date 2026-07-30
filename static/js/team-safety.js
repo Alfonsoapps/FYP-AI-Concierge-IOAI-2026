@@ -62,14 +62,24 @@ window.TeamSafety = (function () {
     function role() { return localStorage.getItem('participant_role') || ''; }
     function name() { return localStorage.getItem('participant_name') || ''; }
 
-    // Restrict Team Leader pages to the Team Leader role. Non-leaders are
-    // redirected home. If onboarding was skipped, we allow through so the
-    // demo remains usable.
+    // Restrict Team Leader pages to the Team Leader role. Non-leaders (and
+    // signed-out visitors) are redirected to onboarding/home so real rosters
+    // are always scoped to an actual signed-in leader.
     function requireLeader() {
         const r = role();
-        if (r && r !== 'Team Leader') {
-            window.location.href = '/';
-        }
+        const n = name();
+        if (!n || !r) { window.location.href = '/onboarding'; return; }
+        if (r !== 'Team Leader') { window.location.href = '/'; }
+    }
+
+    // Append the signed-in leader's name as a `leader` query param, so every
+    // Team Leader page/API call is scoped to the real, currently signed-in
+    // leader rather than a shared default.
+    function withLeaderParam(url) {
+        const n = name();
+        if (!n) return url;
+        const sep = url.includes('?') ? '&' : '?';
+        return url + sep + 'leader=' + encodeURIComponent(n);
     }
 
     // Simple toast notification.
@@ -96,6 +106,7 @@ window.TeamSafety = (function () {
         role: role,
         name: name,
         requireLeader: requireLeader,
+        withLeaderParam: withLeaderParam,
         toast: toast,
     };
 })();

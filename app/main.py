@@ -242,11 +242,98 @@ async def health_check():
 
 @app.post("/api/admin/uploads")
 async def upload_documents(request: Request):
-    """Placeholder endpoint for document uploads. Embedding generation not yet implemented."""
+    """
+    Upload official documents and ingest them into the ChromaDB knowledge base.
+
+    Pipeline: Upload → Extract text → Chunk → Embed → Store in ChromaDB
+    """
+    import uuid
+    from app.services.upload_service import validate_file, save_file, extract_text, delete_temp_file
+    from app.services.rag_service import rag_db
+
     form = await request.form()
     files = form.getlist("files")
-    filenames = [f.filename for f in files if hasattr(f, 'filename')]
-    return {"message": f"Received {len(filenames)} file(s).", "files": filenames}
+
+    if not files:
+        return {"message": "No files provided.", "processed": 0, "results": []}
+
+    results = []
+    processed = 0
+    chunk_size = 1000  # Characters per chunk (roughly 250 tokens)
+
+    for file in files:
+        if not hasattr(file, 'filename') or not file.filename:
+            continue
+
+        try:
+            # Validate
+            import os
+            ext = os.path.splitext(file.filename)[1].lower()
+            if ext not in {".pdf", ".docx", ".doc", ".txt"}:
+                results.append({"file": file.filename, "status": "error", "detail": f"Unsupported type: {ext}"})
+                continue
+
+            # Save temporarily
+            saved_path, size_bytes = await save_file(file)
+
+            # Extract text
+            text_content = extract_text(saved_path, ext)
+
+            if not text_content or not text_content.strip():
+                delete_temp_file(saved_path)
+                results.append({"file": file.filename, "status": "error", "detail": "No text could be extracted"})
+                continue
+
+            # Chunk the text into manageable pieces
+            chunks = []
+            words = text_content.split()
+            current_chunk = []
+            current_len = 0
+
+            for word in words:
+                current_chunk.append(word)
+                current_len += len(word) + 1
+                if current_len >= chunk_size:
+                    chunks.append(" ".join(current_chunk))
+                    current_chunk = []
+                    current_len = 0
+
+            if current_chunk:
+                chunks.append(" ".join(current_chunk))
+
+            # Ingest each chunk into ChromaDB
+            for i, chunk in enumerate(chunks):
+                chunk_id = f"doc_{uuid.uuid4().hex[:8]}_{file.filename}_{i}"
+                await rag_db.ingest_text(
+                    text_id=chunk_id,
+                    content=chunk,
+                    metadata={
+                        "source": file.filename,
+                        "category": "document",
+                        "chunk": i + 1,
+                        "total_chunks": len(chunks),
+                    },
+                )
+
+            # Clean up temp file
+            delete_temp_file(saved_path)
+
+            processed += 1
+            results.append({
+                "file": file.filename,
+                "status": "success",
+                "chunks": len(chunks),
+                "chars": len(text_content),
+            })
+
+        except Exception as exc:
+            results.append({"file": file.filename, "status": "error", "detail": str(exc)})
+
+    return {
+        "message": f"Processed {processed} file(s) into knowledge base.",
+        "processed": processed,
+        "results": results,
+    }
 
 
 # Advanced RAG + audio WebSocket endpoint. This additional prefixed mounting

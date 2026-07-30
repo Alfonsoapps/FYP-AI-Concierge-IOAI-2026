@@ -105,3 +105,105 @@ async def delete_knowledge(
         return {"status": "success"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/api/v1/admin/knowledge/import")
+async def import_knowledge_bulk(
+    request: Request,
+    _authorized: None = Depends(verify_admin),
+) -> dict:
+    """
+    Bulk-import knowledge entries from an uploaded JSON file.
+
+    Expected JSON format: array of objects with category, title, content.
+    Each entry is validated, embedded, and stored in ChromaDB independently.
+    Failed entries don't block the rest of the import.
+    """
+    import json
+    import time
+    import uuid
+
+    form = await request.form()
+    file = form.get("file")
+
+    if not file or not hasattr(file, "read"):
+        raise HTTPException(status_code=400, detail="No file provided.")
+
+    # Read and parse JSON
+    try:
+        raw = await file.read()
+        data = json.loads(raw.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid JSON file: {exc}",
+        )
+
+    if not isinstance(data, list):
+        raise HTTPException(
+            status_code=400,
+            detail="JSON must be an array of knowledge entries.",
+        )
+
+    if len(data) == 0:
+        return {"total": 0, "imported": 0, "failed": 0, "errors": [], "time_seconds": 0}
+
+    start_time = time.time()
+    imported = 0
+    failed = 0
+    errors = []
+
+    for index, entry in enumerate(data):
+        # Validate entry structure
+        if not isinstance(entry, dict):
+            failed += 1
+            errors.append({"index": index, "detail": "Entry is not an object"})
+            continue
+
+        category = entry.get("category", "").strip()
+        title = entry.get("title", "").strip()
+        content = entry.get("content", "").strip()
+
+        if not category:
+            failed += 1
+            errors.append({"index": index, "title": title or f"Entry {index}", "detail": "Missing category"})
+            continue
+        if not title:
+            failed += 1
+            errors.append({"index": index, "title": f"Entry {index}", "detail": "Missing title"})
+            continue
+        if not content:
+            failed += 1
+            errors.append({"index": index, "title": title, "detail": "Missing content"})
+            continue
+
+        # Generate a stable ID from title
+        text_id = f"import_{uuid.uuid4().hex[:8]}_{title[:40].replace(' ', '_').lower()}"
+
+        # Combine title and content for richer embedding
+        full_text = f"{title}\n\n{content}"
+
+        try:
+            await rag_db.ingest_text(
+                text_id=text_id,
+                content=full_text,
+                metadata={
+                    "category": category.lower(),
+                    "source": "bulk_import",
+                    "title": title,
+                },
+            )
+            imported += 1
+        except Exception as exc:
+            failed += 1
+            errors.append({"index": index, "title": title, "detail": str(exc)})
+
+    elapsed = round(time.time() - start_time, 1)
+
+    return {
+        "total": len(data),
+        "imported": imported,
+        "failed": failed,
+        "errors": errors[:20],  # Cap error details to first 20
+        "time_seconds": elapsed,
+    }

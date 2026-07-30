@@ -66,7 +66,9 @@
 
         .status-badge { font-size: 0.66rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
         .status-uploaded { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+        .status-embedded { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: #a78bfa; }
         .status-pending { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); color: #fb923c; }
+        .status-error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #ef4444; }
 
         .empty-state { text-align: center; padding: 40px 20px; color: #505070; font-size: 0.88rem; }
 
@@ -114,12 +116,8 @@
     </div>
 
     <script>
-        // Sample uploaded documents (placeholder data)
-        let documents = [
-            { name: 'IOAI_2027_Handbook.pdf', type: 'pdf', size: '2.4 MB', date: '2027-07-10', status: 'uploaded' },
-            { name: 'Competition_Rules.docx', type: 'docx', size: '890 KB', date: '2027-07-08', status: 'uploaded' },
-            { name: 'Venue_Guide.txt', type: 'txt', size: '45 KB', date: '2027-07-05', status: 'pending' },
-        ];
+        // Sample uploaded documents — starts empty (loaded from server in future)
+        let documents = [];
 
         const fileInput = document.getElementById('file-input');
         const uploadBtn = document.getElementById('upload-btn');
@@ -141,7 +139,6 @@
 
             const formData = new FormData();
             const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-            const extMap = { 'application/pdf': 'pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx', 'text/plain': 'txt' };
 
             for (const file of fileInput.files) {
                 if (!allowed.includes(file.type) && !file.name.match(/\.(pdf|docx|txt)$/i)) {
@@ -157,35 +154,44 @@
 
             try {
                 uploadBtn.disabled = true;
-                uploadBtn.textContent = 'Uploading...';
+                uploadBtn.textContent = 'Processing...';
 
-                const res = await fetch('/api/admin/uploads', { method: 'POST', body: formData });
+                const res = await fetch('/api/admin/uploads', {
+                    method: 'POST',
+                    headers: { 'X-User-Role': 'Organiser' },
+                    body: formData,
+                });
                 const data = await res.json();
 
-                if (res.ok) {
-                    // Add to local list
-                    for (const file of fileInput.files) {
-                        const ext = file.name.split('.').pop().toLowerCase();
-                        documents.push({
-                            name: file.name,
-                            type: ext,
-                            size: formatSize(file.size),
-                            date: new Date().toISOString().split('T')[0],
-                            status: 'uploaded',
-                        });
+                if (res.ok && data.processed > 0) {
+                    // Add successfully processed files to the table
+                    for (const result of data.results) {
+                        if (result.status === 'success') {
+                            const ext = result.file.split('.').pop().toLowerCase();
+                            documents.push({
+                                name: result.file,
+                                type: ext,
+                                size: result.chunks + ' chunks',
+                                date: new Date().toISOString().split('T')[0],
+                                status: 'embedded',
+                            });
+                        }
                     }
                     renderTable();
-                    showFeedback('success', data.message || 'Files uploaded successfully.');
+
+                    const details = data.results
+                        .filter(r => r.status === 'success')
+                        .map(r => `${r.file} (${r.chunks} chunks)`)
+                        .join(', ');
+                    showFeedback('success', `✓ ${data.message} — ${details}`);
+                } else if (res.ok && data.results) {
+                    const errors = data.results.filter(r => r.status === 'error').map(r => `${r.file}: ${r.detail}`).join('; ');
+                    showFeedback('error', errors || 'No files could be processed.');
                 } else {
                     showFeedback('error', data.detail || 'Upload failed.');
                 }
             } catch (err) {
-                showFeedback('success', 'Files recorded (placeholder mode).');
-                for (const file of fileInput.files) {
-                    const ext = file.name.split('.').pop().toLowerCase();
-                    documents.push({ name: file.name, type: ext, size: formatSize(file.size), date: new Date().toISOString().split('T')[0], status: 'pending' });
-                }
-                renderTable();
+                showFeedback('error', 'Upload failed: ' + err.message);
             }
 
             fileInput.value = '';

@@ -21,10 +21,8 @@ from app.services import explore_service as svc
 logger = logging.getLogger(__name__)
 
 import os
-_TEMPLATES_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "templates",
-)
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_TEMPLATES_DIR = os.path.join(_BASE_DIR, "templates")
 templates = Jinja2Templates(directory=_TEMPLATES_DIR)
 
 router = APIRouter(tags=["explore"])
@@ -40,7 +38,7 @@ class CompleteBody(BaseModel):
 async def explore_page(request: Request):
     """Explore / Cultural Experience page."""
     return templates.TemplateResponse(
-        "explore.html", {"request": request, "active_page": "explore"}
+        request, "explore.html", {"request": request, "active_page": "explore"}
     )
 
 

@@ -21,11 +21,10 @@ from app.services import safety_service as svc
 
 logger = logging.getLogger(__name__)
 
+# Use the project-level BASE_DIR from main to resolve templates
 import os
-_TEMPLATES_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "templates",
-)
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_TEMPLATES_DIR = os.path.join(_BASE_DIR, "templates")
 templates = Jinja2Templates(directory=_TEMPLATES_DIR)
 
 router = APIRouter(tags=["safety"])
@@ -47,7 +46,7 @@ class ReportStatusBody(BaseModel):
 async def safety_info_page(request: Request):
     """Safety information page."""
     return templates.TemplateResponse(
-        "safety_info.html", {"request": request, "active_page": "safety-info"}
+        request, "safety_info.html", {"request": request, "active_page": "safety-info"}
     )
 
 

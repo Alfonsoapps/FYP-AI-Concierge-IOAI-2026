@@ -820,3 +820,97 @@ def get_medical_facilities(near: Optional[str] = None) -> List[Dict]:
         return list(MEDICAL_FACILITIES)
     needle = near.strip().lower()
     return [f for f in MEDICAL_FACILITIES if needle in f["near"].lower()]
+# Registration: automatic team creation during onboarding
+# ------------------------------------------------------------------
+
+def register_participant(name: str, country: str, role: str) -> Dict:
+    """
+    Register a participant into their country's delegation team.
+    If the team doesn't exist, creates it. If the participant is already
+    registered, returns their existing record.
+
+    Team Leaders become the leader of their country's team.
+    Students and Observers become members.
+    """
+    _ensure_seeded()
+    clean_name = (name or "").strip()
+    clean_country = (country or "").strip()
+    clean_role = (role or "").strip()
+
+    if not clean_name:
+        raise SafetyValidationError("name is required.")
+    if not clean_country:
+        raise SafetyValidationError("country is required.")
+
+    with _lock:
+        # Check if already registered
+        existing = _find_member_by_name(clean_name)
+        if existing:
+            return _member_to_dict(existing)
+
+        # Find or create the country's team
+        team_id = None
+        for t in _teams.values():
+            if t["country"].strip().lower() == clean_country.lower():
+                team_id = t["id"]
+                # If registering as Team Leader, update the team's leader
+                if clean_role == "Team Leader":
+                    t["leader_name"] = clean_name
+                break
+
+        if team_id is None:
+            team_id = uuid.uuid4().hex
+            leader = clean_name if clean_role == "Team Leader" else DEFAULT_LEADER
+            _teams[team_id] = {
+                "id": team_id,
+                "name": f"Team {clean_country}",
+                "country": clean_country,
+                "leader_name": leader,
+            }
+
+        # Create the member record
+        mid = uuid.uuid4().hex
+        _members[mid] = {
+            "id": mid,
+            "name": clean_name,
+            "country": clean_country,
+            "team_id": team_id,
+            "status": STATUS_PENDING,
+            "last_check_in": None,
+            "location": None,
+        }
+
+        result = _member_to_dict(_members[mid])
+
+    logger.info("Registered participant: %s (%s, %s)", clean_name, clean_country, clean_role)
+    return result
+
+
+def get_my_team(participant_name: str) -> Dict:
+    """
+    Return the team roster for a participant (read-only view).
+    Returns the team info and all members of the same team.
+    """
+    _ensure_seeded()
+    clean_name = (participant_name or "").strip()
+    if not clean_name:
+        raise SafetyValidationError("participant_name is required.")
+
+    with _lock:
+        member = _find_member_by_name(clean_name)
+        if member is None:
+            raise SafetyNotFoundError(f"'{clean_name}' is not a registered team member.")
+
+        team = _teams.get(member["team_id"], {})
+        teammates = [
+            _member_to_dict(m) for m in _members.values()
+            if m["team_id"] == member["team_id"]
+        ]
+
+    teammates.sort(key=lambda x: x["name"].lower())
+    return {
+        "team_name": team.get("name", ""),
+        "country": team.get("country", ""),
+        "leader_name": team.get("leader_name", ""),
+        "members": teammates,
+    }

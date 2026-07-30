@@ -15,6 +15,18 @@ no server-side auth, consistent with the rest of the platform.
 
 import logging
 import os
+Explore / Cultural Experience Router (F10 Requirements)
+
+Endpoints:
+    GET  /explore                       - Explore page
+    GET  /api/explore/culture-guide     - Culture guide content
+    GET  /api/explore/catalog           - Challenges and activities
+    GET  /api/explore/progress          - User's progress and badges
+    POST /api/explore/complete          - Mark an item as completed
+"""
+
+import logging
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
@@ -26,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 # Anchor templates to the project root so rendering works regardless of the
 # process working directory (e.g. under uvicorn's --reload subprocess).
+import os
 _TEMPLATES_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     "templates",
@@ -59,6 +72,24 @@ async def explore_page(request: Request):
 @router.get("/api/explore/culture-guide")
 async def api_culture_guide():
     """Culture facts, food recommendations, and etiquette tips (F10R1-F10R3)."""
+class CompleteBody(BaseModel):
+    participant_name: str = Field(..., min_length=1, max_length=100)
+    item_id: str = Field(..., min_length=1, max_length=50)
+
+
+# Page route
+@router.get("/explore")
+async def explore_page(request: Request):
+    """Explore / Cultural Experience page."""
+    return templates.TemplateResponse(
+        "explore.html", {"request": request, "active_page": "explore"}
+    )
+
+
+# API routes
+@router.get("/api/explore/culture-guide")
+async def api_culture_guide():
+    """Return the full culture guide (facts, food, etiquette)."""
     return svc.get_culture_guide()
 
 
@@ -86,3 +117,20 @@ async def api_complete_item(body: CompleteItemBody):
         raise HTTPException(status_code=400, detail=str(e))
     except svc.ExploreNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    """Return all exploration challenges and activities."""
+    return svc.get_catalog()
+
+
+@router.get("/api/explore/progress")
+async def api_progress(user: Optional[str] = Query(default=None)):
+    """Return a participant's progress and earned badges."""
+    return svc.get_progress(user or "")
+
+
+@router.post("/api/explore/complete")
+async def api_complete(body: CompleteBody):
+    """Mark a challenge or activity as completed."""
+    try:
+        return svc.complete_item(body.participant_name, body.item_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

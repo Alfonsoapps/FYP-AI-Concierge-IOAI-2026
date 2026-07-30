@@ -80,6 +80,25 @@ window.TeamSafety = (function () {
         if (!n) return url;
         const sep = url.includes('?') ? '&' : '?';
         return url + sep + 'leader=' + encodeURIComponent(n);
+    // Restrict admin-only team pages (SOS management) to Team Leaders.
+    // Students and Team Leaders can both view the team dashboard and members.
+    function requireLeader() {
+        const r = role();
+        if (r && r !== 'Team Leader' && r !== 'Student Participant') {
+            window.location.href = '/';
+        }
+    }
+
+    // Strict leader-only check for pages like SOS management.
+    function requireLeaderOnly() {
+        const r = role();
+        if (r && r !== 'Team Leader') {
+            window.location.href = '/';
+        }
+    }
+
+    function isLeader() {
+        return role() === 'Team Leader';
     }
 
     // Simple toast notification.
@@ -107,6 +126,8 @@ window.TeamSafety = (function () {
         name: name,
         requireLeader: requireLeader,
         withLeaderParam: withLeaderParam,
+        requireLeaderOnly: requireLeaderOnly,
+        isLeader: isLeader,
         toast: toast,
     };
 })();

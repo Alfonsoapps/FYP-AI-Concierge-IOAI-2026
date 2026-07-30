@@ -252,3 +252,22 @@ async def admin_stats(announcement_id: str, role: Optional[str] = Query(default=
         return svc.get_statistics(announcement_id)
     except svc.AnnouncementNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ------------------------------------------------------------------
+# Announcement History (F2 R5.2)
+# ------------------------------------------------------------------
+
+@router.get("/api/announcements/history")
+async def announcement_history(
+    role: Optional[str] = Query(default=None),
+    user: Optional[str] = Query(default=None),
+):
+    """Return ALL previously-targeted announcements (uncapped history)."""
+    try:
+        # Reuse list_for_user but without the 100 cap
+        items = svc.list_for_user(role=role, participant_name=user)
+        return {"announcements": items, "count": len(items)}
+    except Exception as e:
+        logger.error("announcement_history failed: %s", e)
+        raise HTTPException(status_code=500, detail="Could not load announcement history.")

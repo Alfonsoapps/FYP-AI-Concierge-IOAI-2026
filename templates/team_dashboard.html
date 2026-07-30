@@ -13,6 +13,13 @@
         <p>Overview of your team's safety status.</p>
     </div>
 
+    <!-- Quick check-in for students -->
+    <div id="student-checkin" style="display:none; max-width:760px; margin:0 auto 20px;">
+        <button class="btn btn-success" style="width:100%; padding:16px; font-size:1rem; font-weight:600; border-radius:12px;" onclick="doCheckIn()">
+            ✓ I'm Safe — Check In Now
+        </button>
+    </div>
+
     <!-- Summary cards -->
     <div class="stat-grid" id="stat-grid">
         <div class="stat-card">
@@ -146,8 +153,27 @@
 
         TeamSafety.requireLeader();
         loadDashboard();
+
+        // Hide alerts section for non-leaders, show check-in button for students
+        if (!TeamSafety.isLeader()) {
+            document.getElementById('alerts-table').parentElement.previousElementSibling.style.display = 'none';
+            document.getElementById('alerts-table').parentElement.style.display = 'none';
+            document.getElementById('student-checkin').style.display = 'block';
+        }
+
         // Lightweight polling keeps the dashboard fresh without a manual reload.
         setInterval(loadDashboard, 5000);
+
+        function doCheckIn() {
+            const name = TeamSafety.name();
+            if (!name) { TeamSafety.toast('Please complete onboarding first.', 'error'); return; }
+            TeamSafety.sendJSON('/api/team/check-in', 'POST', { participant_name: name })
+                .then(() => {
+                    TeamSafety.toast('Checked in! Your team leader has been notified.', 'success');
+                    loadDashboard();
+                })
+                .catch(err => TeamSafety.toast(err.message, 'error'));
+        }
     </script>
 </body>
 </html>

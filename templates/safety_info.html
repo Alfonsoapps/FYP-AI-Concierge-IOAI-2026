@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safety Information - IOAI 2027</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #0c0c1d; color: #e8e8f0; min-height: 100vh; -webkit-font-smoothing: antialiased; padding: 32px 24px 100px; }
+        .page-header { max-width: 640px; margin: 0 auto 20px; }
+        .page-header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #7c3aed, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .page-header p { font-size: 0.88rem; color: #8080a0; }
+        .section-label { max-width: 640px; margin: 22px auto 14px; font-size: 0.78rem; font-weight: 600; color: #a0a0c0; letter-spacing: 0.04em; text-transform: uppercase; }
+        .card-list { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+        .card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15); border-radius: 14px; padding: 18px 20px; }
+        .card.emergency { border-color: rgba(239,68,68,0.3); }
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .card-name { font-size: 0.95rem; font-weight: 600; }
+        .card-number { font-size: 1.1rem; font-weight: 700; color: #a78bfa; }
+        .card-number.emergency { color: #ef4444; }
+        .card-desc { font-size: 0.82rem; color: #8080a0; line-height: 1.4; }
+        .card-meta { font-size: 0.74rem; color: #606080; margin-top: 6px; }
+        .badge { display: inline-block; font-size: 0.64rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; margin-top: 6px; }
+        .badge-emergency { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #ef4444; }
+        .badge-organiser { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2); color: #a78bfa; }
+        .badge-facility { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1>Safety Information</h1>
+        <p>Emergency contacts and medical facilities near IOAI 2027 venues.</p>
+    </div>
+
+    <div class="section-label">Emergency Contacts</div>
+    <div class="card-list" id="contacts-list"></div>
+
+    <div class="section-label">Medical Facilities</div>
+    <div class="card-list" id="facilities-list"></div>
+
+    {% include 'partials/notification_bell.html' %}
+    {% include 'partials/navbar.html' %}
+
+    <script>
+        function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+        async function load() {
+            try {
+                const [cRes, fRes] = await Promise.all([
+                    fetch('/api/safety/emergency-contacts'),
+                    fetch('/api/safety/medical-facilities'),
+                ]);
+                const contacts = (await cRes.json()).contacts || [];
+                const facilities = (await fRes.json()).facilities || [];
+
+                const cList = document.getElementById('contacts-list');
+                cList.innerHTML = contacts.map(c => {
+                    const isEmergency = c.type === 'emergency';
+                    const badgeClass = isEmergency ? 'badge-emergency' : 'badge-organiser';
+                    return `<div class="card ${isEmergency ? 'emergency' : ''}">
+                        <div class="card-top">
+                            <span class="card-name">${esc(c.name)}</span>
+                            <span class="card-number ${isEmergency ? 'emergency' : ''}">${esc(c.number)}</span>
+                        </div>
+                        <div class="card-desc">${esc(c.description)}</div>
+                        <span class="badge ${badgeClass}">${esc(c.type)}</span>
+                    </div>`;
+                }).join('');
+
+                const fList = document.getElementById('facilities-list');
+                fList.innerHTML = facilities.map(f => `<div class="card">
+                    <div class="card-top">
+                        <span class="card-name">${esc(f.name)}</span>
+                        <span class="badge badge-facility">${esc(f.type)}</span>
+                    </div>
+                    <div class="card-desc">${esc(f.address)} · ${esc(f.distance)}</div>
+                    <div class="card-meta">${esc(f.hours)} · ${esc(f.phone)}</div>
+                </div>`).join('');
+            } catch(e) {}
+        }
+        load();
+    </script>
+</body>
+</html>

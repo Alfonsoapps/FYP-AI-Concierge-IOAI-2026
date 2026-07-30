@@ -259,6 +259,20 @@ async def api_list_lost_reports(
     """Lost-participant reports for a leader, optionally filtered by status."""
     try:
         return {"reports": svc.list_lost_reports(leader_name=leader, status=status)}
+# Registration + My Team (F5 / F7 requirements)
+# ------------------------------------------------------------------
+
+class RegisterBody(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    country: str = Field(..., min_length=1, max_length=100)
+    role: str = Field(..., min_length=1, max_length=50)
+
+
+@router.post("/api/team/register")
+async def api_register(body: RegisterBody):
+    """Register a participant into their country's delegation team (called during onboarding)."""
+    try:
+        return svc.register_participant(body.name, body.country, body.role)
     except svc.SafetyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -268,6 +282,13 @@ async def api_update_lost_report_status(report_id: str, body: LostReportStatusBo
     """Update a lost-participant report's status (Reported -> Searching -> Found)."""
     try:
         return svc.update_lost_report_status(report_id, body.status)
+@router.get("/api/team/my-team")
+async def api_my_team(user: Optional[str] = Query(default=None)):
+    """Return the team roster for a participant (read-only view)."""
+    if not user:
+        raise HTTPException(status_code=400, detail="user query parameter required.")
+    try:
+        return svc.get_my_team(user)
     except svc.SafetyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except svc.SafetyNotFoundError as e:

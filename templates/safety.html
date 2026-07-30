@@ -34,6 +34,31 @@
             font-family: inherit; cursor: pointer; transition: all 0.2s ease;
         }
         .btn-checkin:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,0.4); }
+        .btn-lost {
+            background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #fff;
+            width: 100%; padding: 14px; border-radius: 12px; font-size: 0.95rem; font-weight: 600;
+            font-family: inherit; cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn-lost:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(245,158,11,0.4); }
+        .contact-row {
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .contact-row:last-child { border-bottom: none; }
+        .contact-info { display: flex; flex-direction: column; gap: 2px; }
+        .contact-label { font-size: 0.86rem; font-weight: 600; color: #e8e8f0; }
+        .contact-notes { font-size: 0.74rem; color: #8080a0; }
+        .contact-phone {
+            font-size: 0.84rem; font-weight: 700; color: #a78bfa; text-decoration: none;
+            padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(124,58,237,0.3);
+            background: rgba(124,58,237,0.08); white-space: nowrap;
+        }
+        .contact-phone:hover { background: rgba(124,58,237,0.18); }
+        .facility-row { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .facility-row:last-child { border-bottom: none; }
+        .facility-name { font-size: 0.88rem; font-weight: 600; color: #e8e8f0; margin-bottom: 3px; }
+        .facility-meta { font-size: 0.76rem; color: #8080a0; line-height: 1.5; }
+        .facility-phone { color: #a78bfa; text-decoration: none; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -56,6 +81,27 @@
             <input class="safety-input" id="sos-location" type="text" placeholder="Your location (optional)">
             <input class="safety-input" id="sos-message" type="text" placeholder="What's happening? (optional)">
             <button class="btn-sos" id="btn-sos">Send SOS Alert</button>
+        </div>
+
+        <div class="safety-card">
+            <h2>Report a Lost Participant</h2>
+            <p>Seen someone separated from their team, or can't find a teammate? Report it here.</p>
+            <input class="safety-input" id="lost-name" type="text" placeholder="Missing participant's name">
+            <input class="safety-input" id="lost-location" type="text" placeholder="Last known location (optional)">
+            <input class="safety-input" id="lost-description" type="text" placeholder="Description / details (optional)">
+            <button class="btn-lost" id="btn-lost">Report Lost Participant</button>
+        </div>
+
+        <div class="safety-card">
+            <h2>Emergency Contacts</h2>
+            <p>Key numbers for Singapore and the IOAI 2027 event.</p>
+            <div id="contacts-list"></div>
+        </div>
+
+        <div class="safety-card">
+            <h2>Nearby Medical Facilities</h2>
+            <p>Hospitals and clinics near event venues.</p>
+            <div id="facilities-list"></div>
         </div>
     </div>
 
@@ -93,6 +139,68 @@
             .then(() => TeamSafety.toast('SOS sent. Help is on the way.', 'success'))
             .catch(err => TeamSafety.toast(err.message, 'error'));
         });
+
+        document.getElementById('btn-lost').addEventListener('click', () => {
+            const lostName = document.getElementById('lost-name').value.trim();
+            if (!lostName) { TeamSafety.toast('Please enter the missing participant\'s name.', 'error'); return; }
+            const reporter = participantName();
+            if (!reporter) return;
+            TeamSafety.sendJSON('/api/team/lost-reports', 'POST', {
+                participant_name: lostName,
+                reported_by: reporter,
+                last_known_location: document.getElementById('lost-location').value.trim() || null,
+                description: document.getElementById('lost-description').value.trim() || null,
+            })
+            .then(() => {
+                TeamSafety.toast('Report submitted. Your team leader has been notified.', 'success');
+                document.getElementById('lost-name').value = '';
+                document.getElementById('lost-location').value = '';
+                document.getElementById('lost-description').value = '';
+            })
+            .catch(err => TeamSafety.toast(err.message, 'error'));
+        });
+
+        function loadEmergencyContacts() {
+            TeamSafety.getJSON('/api/safety/emergency-contacts').then(data => {
+                const list = document.getElementById('contacts-list');
+                list.innerHTML = '';
+                data.contacts.forEach(c => {
+                    const isDialable = /^[0-9+][0-9+\s]*$/.test(c.phone);
+                    const phoneHtml = isDialable
+                        ? `<a class="contact-phone" href="tel:${TeamSafety.escape(c.phone.replace(/\s+/g, ''))}">${TeamSafety.escape(c.phone)}</a>`
+                        : `<span class="contact-phone" style="cursor:default;">${TeamSafety.escape(c.phone)}</span>`;
+                    list.innerHTML += `
+                        <div class="contact-row">
+                            <div class="contact-info">
+                                <span class="contact-label">${TeamSafety.escape(c.label)}</span>
+                                <span class="contact-notes">${TeamSafety.escape(c.notes)}</span>
+                            </div>
+                            ${phoneHtml}
+                        </div>`;
+                });
+            }).catch(() => {});
+        }
+
+        function loadMedicalFacilities() {
+            TeamSafety.getJSON('/api/safety/medical-facilities').then(data => {
+                const list = document.getElementById('facilities-list');
+                list.innerHTML = '';
+                data.facilities.forEach(f => {
+                    list.innerHTML += `
+                        <div class="facility-row">
+                            <div class="facility-name">${TeamSafety.escape(f.name)}</div>
+                            <div class="facility-meta">
+                                ${TeamSafety.escape(f.category)} · Near ${TeamSafety.escape(f.near)}<br>
+                                ${TeamSafety.escape(f.address)}<br>
+                                <a class="facility-phone" href="tel:${TeamSafety.escape(f.phone.replace(/\s+/g, ''))}">${TeamSafety.escape(f.phone)}</a>
+                            </div>
+                        </div>`;
+                });
+            }).catch(() => {});
+        }
+
+        loadEmergencyContacts();
+        loadMedicalFacilities();
     </script>
 </body>
 </html>

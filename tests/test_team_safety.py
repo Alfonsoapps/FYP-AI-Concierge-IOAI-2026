@@ -36,10 +36,12 @@ def test_dashboard_stats_shape():
     assert r.status_code == 200
     data = r.json()
     assert set(data["stats"]) == {
-        "total_members", "checked_in", "requiring_attention", "active_sos"
+        "total_members", "checked_in", "requiring_attention", "active_sos",
+        "active_lost_reports",
     }
     assert data["stats"]["total_members"] == 4  # seeded members
     assert isinstance(data["recent_alerts"], list)
+    assert isinstance(data["welfare_alerts"], list)
     assert isinstance(data["team_overview"], list)
 
 

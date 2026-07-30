@@ -40,6 +40,18 @@
         </div>
     </div>
 
+    <!-- Welfare alerts: SOS + lost-participant reports combined (F7R4) -->
+    <div class="section-label">Welfare Alerts</div>
+    <div class="panel">
+        <table class="data-table" id="welfare-table">
+            <thead>
+                <tr><th>Participant</th><th>Type</th><th>Status</th><th>Reported</th></tr>
+            </thead>
+            <tbody id="welfare-body"></tbody>
+        </table>
+        <div class="empty-state" id="welfare-empty" hidden>No welfare alerts. Your delegation is all clear.</div>
+    </div>
+
     <!-- Recent alerts -->
     <div class="section-label">Recent Alerts</div>
     <div class="panel">
@@ -72,6 +84,28 @@
             document.getElementById('stat-checked').textContent = s.checked_in;
             document.getElementById('stat-attention').textContent = s.requiring_attention;
             document.getElementById('stat-sos').textContent = s.active_sos;
+
+            // Welfare alerts (SOS + lost-participant reports combined)
+            const wBody = document.getElementById('welfare-body');
+            const wTable = document.getElementById('welfare-table');
+            const wEmpty = document.getElementById('welfare-empty');
+            wBody.innerHTML = '';
+            const welfare = data.welfare_alerts || [];
+            if (!welfare.length) {
+                wTable.hidden = true; wEmpty.hidden = false;
+            } else {
+                wTable.hidden = false; wEmpty.hidden = true;
+                welfare.forEach(w => {
+                    const tr = document.createElement('tr');
+                    const kindLabel = w.kind === 'sos' ? 'SOS' : 'Lost Report';
+                    tr.innerHTML =
+                        `<td>${TeamSafety.escape(w.participant_name)}</td>` +
+                        `<td class="muted">${TeamSafety.escape(kindLabel)}</td>` +
+                        `<td>${TeamSafety.statusBadge(w.status)}</td>` +
+                        `<td class="muted">${fmtTime(w.timestamp)}</td>`;
+                    wBody.appendChild(tr);
+                });
+            }
 
             // Recent alerts
             const body = document.getElementById('alerts-body');
@@ -112,7 +146,7 @@
         }
 
         function loadDashboard() {
-            TeamSafety.getJSON('/api/team/dashboard')
+            TeamSafety.getJSON(TeamSafety.withLeaderParam('/api/team/dashboard'))
                 .then(renderDashboard)
                 .catch(() => {});
         }

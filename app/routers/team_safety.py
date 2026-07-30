@@ -48,6 +48,12 @@ router = APIRouter(tags=["team-safety"])
 # Schemas
 # ------------------------------------------------------------------
 
+class RegisterBody(BaseModel):
+    participant_name: str = Field(..., min_length=1, max_length=100)
+    role: str = Field(..., min_length=1, max_length=100)
+    country: str = Field(..., min_length=1, max_length=100)
+
+
 class CheckInBody(BaseModel):
     participant_name: str = Field(..., min_length=1, max_length=100)
     location: Optional[str] = Field(default=None, max_length=200)
@@ -61,6 +67,17 @@ class SOSBody(BaseModel):
 
 class AlertStatusBody(BaseModel):
     status: str = Field(..., description="New, In Progress, or Resolved")
+
+
+class LostReportBody(BaseModel):
+    participant_name: str = Field(..., min_length=1, max_length=100)
+    reported_by: str = Field(..., min_length=1, max_length=100)
+    last_known_location: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=1000)
+
+
+class LostReportStatusBody(BaseModel):
+    status: str = Field(..., description="Reported, Searching, or Found")
 
 
 # ------------------------------------------------------------------
@@ -92,12 +109,45 @@ async def team_sos_page(request: Request):
 
 
 # ------------------------------------------------------------------
+# API: registration (real participants join their delegation roster)
+# ------------------------------------------------------------------
+
+@router.post("/api/team/register")
+async def api_register_participant(body: RegisterBody):
+    """
+    Register a real, onboarded participant into their country's delegation
+    roster. Called after onboarding (and safe to call again on every visit)
+    so team rosters reflect actual signed-in participants rather than fixture
+    data.
+    """
+    try:
+        return svc.register_participant(
+            body.participant_name, role=body.role, country=body.country
+        )
+    except svc.SafetyValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/team/my-team")
+async def api_my_team(participant_name: str = Query(...)):
+    """
+    Return the delegation team (with roster) for a non-leader participant,
+    so they can see their own team members on the Team page.
+    """
+    team = svc.get_team_for_member(participant_name)
+    if team is None:
+        raise HTTPException(status_code=404, detail="No team found for this participant yet.")
+    return team
+
+
+# ------------------------------------------------------------------
 # API: reads
 # ------------------------------------------------------------------
 
 @router.get("/api/team/dashboard")
 async def api_dashboard(leader: Optional[str] = Query(default=None)):
-    """Dashboard statistics, recent alerts, and team overview for a leader."""
+    """Dashboard statistics, recent alerts, welfare alerts, and team overview
+    for a leader (Requirements F7R4, F7R5)."""
     try:
         return svc.get_dashboard(leader_name=leader)
     except Exception as e:  # pragma: no cover - defensive
@@ -184,6 +234,31 @@ async def api_update_alert_status(alert_id: str, body: AlertStatusBody):
 
 
 # ------------------------------------------------------------------
+# API: lost participant reporting (Requirement F6R5)
+# ------------------------------------------------------------------
+
+@router.post("/api/team/lost-reports")
+async def api_create_lost_report(body: LostReportBody):
+    """Report a participant as lost/missing."""
+    try:
+        return svc.create_lost_report(
+            body.participant_name,
+            reported_by=body.reported_by,
+            last_known_location=body.last_known_location,
+            description=body.description,
+        )
+    except svc.SafetyValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/team/lost-reports")
+async def api_list_lost_reports(
+    leader: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+):
+    """Lost-participant reports for a leader, optionally filtered by status."""
+    try:
+        return {"reports": svc.list_lost_reports(leader_name=leader, status=status)}
 # Registration + My Team (F5 / F7 requirements)
 # ------------------------------------------------------------------
 
@@ -202,6 +277,11 @@ async def api_register(body: RegisterBody):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.patch("/api/team/lost-reports/{report_id}/status")
+async def api_update_lost_report_status(report_id: str, body: LostReportStatusBody):
+    """Update a lost-participant report's status (Reported -> Searching -> Found)."""
+    try:
+        return svc.update_lost_report_status(report_id, body.status)
 @router.get("/api/team/my-team")
 async def api_my_team(user: Optional[str] = Query(default=None)):
     """Return the team roster for a participant (read-only view)."""
@@ -212,4 +292,61 @@ async def api_my_team(user: Optional[str] = Query(default=None)):
     except svc.SafetyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except svc.SafetyNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# ------------------------------------------------------------------
+# API: emergency contacts + nearby medical facilities (F6R1, F6R6)
+# ------------------------------------------------------------------
+
+@router.get("/api/safety/emergency-contacts")
+async def api_emergency_contacts():
+    """Static emergency contact directory."""
+    return {"contacts": svc.get_emergency_contacts()}
+
+
+@router.get("/api/safety/medical-facilities")
+async def api_medical_facilities(near: Optional[str] = Query(default=None)):
+    """Nearby medical facilities, optionally filtered by venue."""
+    return {"facilities": svc.get_medical_facilities(near=near)}
+
+
+# ------------------------------------------------------------------
+# API: delegation schedule + announcement acknowledgement monitoring
+# (Requirements F7R1, F7R3)
+# ------------------------------------------------------------------
+
+@router.get("/api/team/delegation-audiences")
+async def api_delegation_audiences(leader: Optional[str] = Query(default=None)):
+    """
+    Audience_Category values present in a Team Leader's delegation, so the
+    frontend can filter the schedule and announcements down to exactly this
+    delegation's relevant categories (Requirement F7R1, F7R2).
+    """
+    return {"audience_categories": svc.get_delegation_audience_categories(leader_name=leader)}
+
+
+@router.get("/api/team/announcements/{announcement_id}/ack-status")
+async def api_delegation_ack_status(
+    announcement_id: str,
+    leader: Optional[str] = Query(default=None),
+):
+    """
+    Per-participant read/acknowledged status for a critical announcement,
+    scoped to a Team Leader's own delegation members (Requirement F7R3).
+    Unlike the organiser-only aggregate `/api/admin/announcements/{id}/stats`,
+    this always reports on the caller's own participants only.
+    """
+    from app.services import announcement_service as ann_svc
+
+    members = svc.list_members(leader_name=leader)
+    participant_names = [m["name"] for m in members]
+    try:
+        return {
+            "announcement_id": announcement_id,
+            "participants": ann_svc.get_ack_status_for_participants(
+                announcement_id, participant_names
+            ),
+        }
+    except ann_svc.AnnouncementNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

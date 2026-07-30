@@ -196,7 +196,7 @@ async def chat(
     import time as _time
     _start = _time.time()
     try:
-        reply = await chat_pipeline.generate_reply(user_message)
+        reply = await chat_pipeline.generate_reply(user_message, request.role)
     except ValueError as exc:
         logger.error("Invalid chat request: %s", exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc

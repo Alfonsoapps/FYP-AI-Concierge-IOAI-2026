@@ -86,6 +86,17 @@
         .stat-label { font-size: 0.66rem; color: #8080a0; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
         .not-ack-list { margin-top: 8px; font-size: 0.8rem; color: #b0b0c8; }
         .not-ack-list li { margin: 4px 0; }
+
+        /* Persisted escalation dashboard */
+        .escalation-dashboard { margin-top: 32px; overflow-x: auto; }
+        .escalation-dashboard h3 { font-size: 1.25rem; font-weight: 700; color: #f87171; margin-bottom: 12px; }
+        .escalation-table { width: 100%; border-collapse: collapse; background: rgba(14,14,32,0.9);
+            border: 1px solid rgba(239,68,68,0.25); border-radius: 12px; overflow: hidden; }
+        .escalation-table th, .escalation-table td { padding: 11px 12px; text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.76rem; }
+        .escalation-table th { color: #f87171; background: rgba(239,68,68,0.08); font-weight: 700; }
+        .escalation-table td { color: #b0b0c8; overflow-wrap: anywhere; }
+        .escalation-table tr:last-child td { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -114,6 +125,22 @@
             </div>
             <div id="list"></div>
             <div class="empty" id="empty" hidden>No announcements yet. Create your first one.</div>
+
+            <section class="escalation-dashboard" aria-labelledby="escalations-heading">
+                <h3 id="escalations-heading" class="text-xl font-bold text-red-400 mt-8">Escalated Users (Missed Deadlines)</h3>
+                <table class="escalation-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">User ID</th>
+                            <th scope="col">Announcement ID</th>
+                            <th scope="col">Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="escalations-table">
+                        <tr><td colspan="3">Loading escalations…</td></tr>
+                    </tbody>
+                </table>
+            </section>
         </div>
     </div>
 
@@ -161,6 +188,14 @@
             <div class="fg checkbox-row">
                 <input type="checkbox" id="f-ack">
                 <label for="f-ack" style="margin:0;">Require acknowledgement (critical)</label>
+            </div>
+            <div class="fg">
+                <label for="deadline_hours">Deadline (Hours)</label>
+                <input type="number" id="deadline_hours" value="24" min="1" max="8760" step="1"
+                       inputmode="numeric" aria-describedby="deadline-help">
+                <div id="deadline-help" style="font-size:0.68rem;color:#606080;margin-top:5px;">
+                    Whole hours allowed (1–8760). Existing announcements default to 24 hours.
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
@@ -285,6 +320,7 @@
             document.getElementById('f-priority').value = a ? a.priority : 'Normal';
             document.getElementById('f-audience').value = a ? a.target_audience : 'All Users';
             document.getElementById('f-ack').checked = a ? a.ack_required : false;
+            document.getElementById('deadline_hours').value = a ? (a.deadline_hours || 24) : 24;
             formOverlay.classList.add('open');
         }
         function closeForm() { formOverlay.classList.remove('open'); }
@@ -300,11 +336,20 @@
                 category: document.getElementById('f-category').value,
                 priority: document.getElementById('f-priority').value,
                 target_audience: document.getElementById('f-audience').value,
-                ack_required: document.getElementById('f-ack').checked
+                ack_required: document.getElementById('f-ack').checked,
+                deadline_hours: Number.parseInt(
+                    document.getElementById('deadline_hours').value,
+                    10
+                )
             };
             const errBox = document.getElementById('form-error');
             if (!payload.title) { errBox.textContent = 'Title is required.'; errBox.classList.add('visible'); return; }
             if (!payload.message) { errBox.textContent = 'Message is required.'; errBox.classList.add('visible'); return; }
+            if (!Number.isInteger(payload.deadline_hours) || payload.deadline_hours < 1 || payload.deadline_hours > 8760) {
+                errBox.textContent = 'Deadline must be a whole number between 1 and 8760 hours.';
+                errBox.classList.add('visible');
+                return;
+            }
 
             const url = id
                 ? '/api/admin/announcements/' + id + '?' + roleParam()
@@ -362,12 +407,42 @@
         }
         document.getElementById('stats-close').addEventListener('click', () => statsOverlay.classList.remove('open'));
 
+        // ---- Escalation dashboard ----
+        async function fetchEscalations() {
+            const tableBody = document.getElementById('escalations-table');
+            try {
+                const response = await fetch('/api/v1/announcements/escalations');
+                if (!response.ok) throw new Error('Escalation request failed');
+
+                const payload = await response.json();
+                const escalations = Array.isArray(payload.data) ? payload.data : [];
+                if (escalations.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="3">No missed deadlines recorded.</td></tr>';
+                    return;
+                }
+
+                // Escape every persisted value before placing it into HTML.
+                tableBody.innerHTML = escalations.map(item => `
+                    <tr>
+                        <td>${esc(item.user_id)}</td>
+                        <td>${esc(item.announcement_id)}</td>
+                        <td>${esc(fmtDate(item.escalated_at))}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tableBody.innerHTML = '<tr><td colspan="3" style="color:#ef4444;">Could not load escalations.</td></tr>';
+            }
+        }
+
         // Close modals on overlay click
         [formOverlay, statsOverlay].forEach(ov => {
             ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('open'); });
         });
 
-        initAccess();
+        window.addEventListener('load', () => {
+            initAccess();
+            if (isOrganiser(role)) fetchEscalations();
+        });
     </script>
 </body>
 </html>

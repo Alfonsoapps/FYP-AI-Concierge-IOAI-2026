@@ -47,6 +47,7 @@ class AnnouncementIn(BaseModel):
     priority: str = Field(..., description="Normal or Critical")
     target_audience: str = Field(..., description="One of the fixed audience categories")
     ack_required: bool = Field(default=False)
+    deadline_hours: int = Field(default=24, ge=1, le=8760)
 
 
 class AnnouncementOut(BaseModel):
@@ -62,6 +63,7 @@ class AnnouncementOut(BaseModel):
     published_at: Optional[str] = None
     read_at: Optional[str] = None
     acknowledged_at: Optional[str] = None
+    deadline_hours: int = 24
 
 
 class ActorBody(BaseModel):
@@ -151,6 +153,20 @@ async def latest_announcements(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/api/v1/announcements/escalations")
+async def list_escalations():
+    """Return persisted missed-deadline records for the admin dashboard."""
+    try:
+        data = svc.get_all_escalations()
+        return {"status": "success", "data": data}
+    except Exception as e:  # pragma: no cover - defensive API boundary
+        logger.error("list_escalations failed: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Could not load announcement escalations.",
+        )
+
+
 # ------------------------------------------------------------------
 # Admin endpoints
 # ------------------------------------------------------------------
@@ -172,6 +188,7 @@ async def admin_create(payload: AnnouncementIn, role: Optional[str] = Query(defa
             priority=payload.priority,
             target_audience=payload.target_audience,
             ack_required=payload.ack_required,
+            deadline_hours=payload.deadline_hours,
         )
     except svc.AnnouncementValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -202,6 +219,7 @@ async def admin_update(
             priority=payload.priority,
             target_audience=payload.target_audience,
             ack_required=payload.ack_required,
+            deadline_hours=payload.deadline_hours,
         )
     except svc.AnnouncementNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

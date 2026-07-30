@@ -10,6 +10,7 @@ Routes:
     /profile   → Profile (coming soon)
 """
 
+import asyncio
 import logging
 import os
 from fastapi import FastAPI, Request
@@ -37,6 +38,7 @@ from app.routers import safety
 from app.routers import explore
 from app.routers.chat import router as chat_router
 from app.services import announcement_service
+from app.services.announcement_service import monitor_overdue_acknowledgements
 from app.services import team_safety_service
 from app.services import explore_service
 
@@ -90,9 +92,15 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.on_event("startup")
 async def _init_announcements():
-    """Initialize the announcements store and seed sample data if empty."""
+    """Initialize announcements and start one retained compliance watchdog."""
     announcement_service.init_db()
     announcement_service.seed_sample_data()
+    # This application uses startup handlers rather than a lifespan context.
+    # Retain a strong reference on app.state so the background task cannot be
+    # garbage-collected while the application is running.
+    app.state.announcement_watchdog_task = asyncio.create_task(
+        monitor_overdue_acknowledgements()
+    )
 
 
 @app.on_event("startup")

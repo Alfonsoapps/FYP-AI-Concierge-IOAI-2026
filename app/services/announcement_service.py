@@ -20,12 +20,13 @@ Design notes:
       computed from the recipient records that exist for an announcement.
 """
 
+import asyncio
 import logging
 import os
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -140,6 +141,151 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
+def _get_unacknowledged_critical_recipients() -> List[Dict]:
+    """Load watchdog candidates entirely within a worker thread.
+
+    Opening, querying, converting, and closing the SQLite connection in the
+    same function prevents a connection from crossing thread boundaries. The
+    dictionaries returned to the event loop contain no live SQLite objects.
+    """
+    conn = _connect()
+    try:
+        rows = conn.execute(
+            """SELECT r.participant_name AS user_id,
+                      a.id AS announcement_id,
+                      a.published_at AS pub_date,
+                      COALESCE(a.deadline_hours, 24) AS deadline_hours
+               FROM announcement_recipients AS r
+               JOIN announcements AS a ON a.id = r.announcement_id
+               WHERE r.acknowledged_at IS NULL
+                 AND a.ack_required = 1
+                 AND a.priority = 'Critical'
+                 AND a.status = 'published'
+                 AND a.published_at IS NOT NULL
+                 AND NOT EXISTS (
+                     SELECT 1
+                     FROM escalations AS e
+                     WHERE e.user_id = r.participant_name
+                       AND e.announcement_id = a.id
+                 )"""
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def _record_escalation(user_id: str, announcement_id: str, escalated_at: str) -> None:
+    """Persist one escalation without blocking the event loop.
+
+    The NOT EXISTS guard prevents the watchdog's five-minute polling cycle from
+    adding duplicate rows for the same missed acknowledgement.
+    """
+    with _write_lock:
+        conn = _connect()
+        try:
+            conn.execute(
+                """INSERT INTO escalations (user_id, announcement_id, escalated_at)
+                   SELECT ?, ?, ?
+                   WHERE NOT EXISTS (
+                       SELECT 1 FROM escalations
+                       WHERE user_id = ? AND announcement_id = ?
+                   )""",
+                (
+                    user_id,
+                    announcement_id,
+                    escalated_at,
+                    user_id,
+                    announcement_id,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+
+async def notify_escalation(user_id: str, announcement_id: str) -> None:
+    """Persist and announce a missed custom acknowledgement deadline."""
+    escalated_at = datetime.now(timezone.utc).isoformat()
+    await asyncio.to_thread(
+        _record_escalation,
+        user_id,
+        announcement_id,
+        escalated_at,
+    )
+    logger.warning(
+        f"ESCALATION ALERT: User {user_id} missed the configured deadline for "
+        f"Critical Announcement {announcement_id}. Notifying Admin and Team Leader!"
+    )
+
+
+async def monitor_overdue_acknowledgements() -> None:
+    """Continuously detect overdue Critical announcement acknowledgements.
+
+    The blocking SQLite query runs in a worker thread so the FastAPI event loop
+    remains responsive. Invalid publication dates are logged and skipped rather
+    than terminating the long-running watchdog.
+    """
+    while True:
+        try:
+            candidates = await asyncio.to_thread(
+                _get_unacknowledged_critical_recipients
+            )
+        except Exception:
+            # Keep the watchdog alive through transient SQLite failures. The
+            # next iteration retries after the normal polling delay.
+            logger.exception("Critical acknowledgement watchdog query failed")
+            candidates = []
+
+        for candidate in candidates:
+            user_id = str(candidate["user_id"])
+            announcement_id = str(candidate["announcement_id"])
+            pub_date = candidate["pub_date"]
+            raw_deadline_hours = candidate.get("deadline_hours", 24)
+
+            try:
+                published_date = datetime.fromisoformat(
+                    str(pub_date).replace("Z", "+00:00")
+                )
+                # Older records may contain a timezone-naive ISO value. Treat
+                # those values as UTC so comparisons remain safe and stable.
+                if published_date.tzinfo is None:
+                    published_date = published_date.replace(tzinfo=timezone.utc)
+                deadline_hours = int(
+                    24 if raw_deadline_hours is None else raw_deadline_hours
+                )
+                if deadline_hours <= 0:
+                    raise ValueError("deadline_hours must be positive")
+                deadline = published_date + timedelta(hours=deadline_hours)
+            except (TypeError, ValueError, OverflowError):
+                logger.warning(
+                    "Skipping Critical announcement %s with invalid deadline "
+                    "data (published_at=%r, deadline_hours=%r)",
+                    announcement_id,
+                    pub_date,
+                    raw_deadline_hours,
+                )
+                continue
+
+            if datetime.now(timezone.utc) > deadline:
+                await notify_escalation(user_id, announcement_id)
+
+        await asyncio.sleep(300)
+
+
+def get_all_escalations() -> List[Dict]:
+    """Return all persisted deadline escalations, newest first."""
+    conn = _connect()
+    try:
+        rows = conn.execute(
+            """SELECT id, user_id, announcement_id, escalated_at
+               FROM escalations
+               ORDER BY escalated_at DESC, id DESC"""
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
 def init_db() -> None:
     """Create tables if they do not exist. Safe to call on every startup."""
     with _write_lock:
@@ -169,8 +315,28 @@ def init_db() -> None:
                     UNIQUE(announcement_id, participant_name),
                     FOREIGN KEY(announcement_id) REFERENCES announcements(id) ON DELETE CASCADE
                 );
+
+                CREATE TABLE IF NOT EXISTS escalations (
+                    id              INTEGER PRIMARY KEY,
+                    user_id         TEXT,
+                    announcement_id TEXT,
+                    escalated_at    TEXT
+                );
                 """
             )
+
+            # SQLite has no portable `ADD COLUMN IF NOT EXISTS` syntax across
+            # supported versions. Run the additive migration once and suppress
+            # only the expected duplicate-column error on existing databases.
+            try:
+                conn.execute(
+                    "ALTER TABLE announcements "
+                    "ADD COLUMN deadline_hours INTEGER DEFAULT 24"
+                )
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" not in str(exc).lower():
+                    raise
+
             conn.commit()
         finally:
             conn.close()
@@ -193,6 +359,11 @@ def _row_to_announcement(row: sqlite3.Row) -> Dict:
         "status": row["status"],
         "created_at": row["created_at"],
         "published_at": row["published_at"],
+        "deadline_hours": int(
+            row["deadline_hours"]
+            if "deadline_hours" in row.keys() and row["deadline_hours"] is not None
+            else 24
+        ),
     }
 
 
@@ -211,6 +382,7 @@ def _validate_fields(
     priority: Optional[str],
     target_audience: Optional[str],
     ack_required,
+    deadline_hours,
 ) -> None:
     if title is None or not title.strip():
         raise AnnouncementValidationError("Title is required.")
@@ -234,6 +406,15 @@ def _validate_fields(
     if not isinstance(ack_required, bool):
         raise AnnouncementValidationError("Acknowledgement-required flag must be a boolean.")
 
+    if (
+        isinstance(deadline_hours, bool)
+        or not isinstance(deadline_hours, int)
+        or not 1 <= deadline_hours <= 8760
+    ):
+        raise AnnouncementValidationError(
+            "Deadline hours must be a whole number between 1 and 8760."
+        )
+
 
 # ------------------------------------------------------------------
 # CRUD + publish
@@ -246,9 +427,18 @@ def create_announcement(
     priority: str,
     target_audience: str,
     ack_required: bool,
+    deadline_hours: int = 24,
 ) -> Dict:
     """Create a new draft announcement (Requirement 1)."""
-    _validate_fields(title, message, category, priority, target_audience, ack_required)
+    _validate_fields(
+        title,
+        message,
+        category,
+        priority,
+        target_audience,
+        ack_required,
+        deadline_hours,
+    )
 
     ann_id = uuid.uuid4().hex
     created_at = _now_iso()
@@ -259,11 +449,18 @@ def create_announcement(
             conn.execute(
                 """INSERT INTO announcements
                    (id, title, message, category, priority, target_audience,
-                    ack_required, status, created_at, published_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, NULL)""",
+                    ack_required, status, created_at, published_at, deadline_hours)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, NULL, ?)""",
                 (
-                    ann_id, title.strip(), message.strip(), category.strip(),
-                    priority, target_audience, 1 if ack_required else 0, created_at,
+                    ann_id,
+                    title.strip(),
+                    message.strip(),
+                    category.strip(),
+                    priority,
+                    target_audience,
+                    1 if ack_required else 0,
+                    created_at,
+                    deadline_hours,
                 ),
             )
             conn.commit()
@@ -308,10 +505,19 @@ def update_announcement(
     priority: str,
     target_audience: str,
     ack_required: bool,
+    deadline_hours: int = 24,
 ) -> Dict:
     """Update an existing announcement's fields (Requirement 2)."""
-    existing = get_announcement(announcement_id)  # raises if missing
-    _validate_fields(title, message, category, priority, target_audience, ack_required)
+    get_announcement(announcement_id)  # raises if missing
+    _validate_fields(
+        title,
+        message,
+        category,
+        priority,
+        target_audience,
+        ack_required,
+        deadline_hours,
+    )
 
     with _write_lock:
         conn = _connect()
@@ -319,11 +525,17 @@ def update_announcement(
             conn.execute(
                 """UPDATE announcements
                    SET title = ?, message = ?, category = ?, priority = ?,
-                       target_audience = ?, ack_required = ?
+                       target_audience = ?, ack_required = ?, deadline_hours = ?
                    WHERE id = ?""",
                 (
-                    title.strip(), message.strip(), category.strip(), priority,
-                    target_audience, 1 if ack_required else 0, announcement_id,
+                    title.strip(),
+                    message.strip(),
+                    category.strip(),
+                    priority,
+                    target_audience,
+                    1 if ack_required else 0,
+                    deadline_hours,
+                    announcement_id,
                 ),
             )
             conn.commit()

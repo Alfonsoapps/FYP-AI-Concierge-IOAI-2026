@@ -90,6 +90,11 @@
         let viewMode = 'current';      // 'current' | 'history'
         let announcements = [];
 
+        // Keep interval handles so a re-render can cleanly replace all timers
+        // without leaving detached DOM nodes updating in the background.
+        const acknowledgementIntervals = new Set();
+        const criticalTimerIntervals = new Set();
+
         // Reveal the organiser management link for organisers.
         (function () {
             const aliases = ['organiser', 'organizer', 'organisers', 'organizers'];
@@ -102,6 +107,12 @@
             const d = document.createElement('div');
             d.textContent = s == null ? '' : String(s);
             return d.innerHTML;
+        }
+
+        // Text escaping alone does not encode quotes, so use this helper for
+        // values inserted into quoted HTML attributes.
+        function escAttr(s) {
+            return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         function fmtDate(iso) {
@@ -144,6 +155,13 @@
         function render() {
             const list = document.getElementById('list');
             const empty = document.getElementById('empty');
+
+            // Rendering replaces all cards. Stop their old intervals first so
+            // every new control receives exactly one independent timer.
+            acknowledgementIntervals.forEach(clearInterval);
+            acknowledgementIntervals.clear();
+            criticalTimerIntervals.forEach(clearInterval);
+            criticalTimerIntervals.clear();
             list.innerHTML = '';
 
             // In "current" view, hide already-read non-critical items; history shows all.
@@ -176,11 +194,17 @@
                             Acknowledged on ${esc(fmtDate(a.acknowledged_at))}</span></div>`;
                     } else {
                         ackRow = `<div class="ack-row">
-                            <button class="btn-ack" data-id="${esc(a.id)}">Acknowledge</button>
+                            <button class="btn-ack ack-btn" data-id="${escAttr(a.id)}">Acknowledge</button>
                             <span style="font-size:0.74rem;color:#8080a0;">This is a critical announcement.</span>
                         </div>`;
                     }
                 }
+
+                const criticalTimer = critical
+                    ? `<div class="critical-timer text-red-400 text-sm font-bold mt-2"
+                            data-published="${escAttr(a.published_at || '')}"
+                            data-deadline-hours="${escAttr(a.deadline_hours ?? 24)}">Calculating deadline...</div>`
+                    : '';
 
                 list.innerHTML += `
                 <div class="ann-card ${critical ? 'critical' : ''}">
@@ -192,12 +216,85 @@
                     <div class="ann-title">${esc(a.title)}</div>
                     <div class="ann-message">${esc(a.message)}</div>
                     <div class="ann-meta">Published ${esc(fmtDate(a.published_at))} · For ${esc(a.target_audience)}</div>
+                    ${criticalTimer}
                     ${ackRow}
                 </div>`;
             });
 
             list.querySelectorAll('.btn-ack').forEach(btn => {
                 btn.addEventListener('click', () => acknowledge(btn.dataset.id, btn));
+            });
+
+            initializeComplianceTimers(list);
+        }
+
+        function initializeComplianceTimers(root) {
+            // Every acknowledgement button receives its own five-second
+            // mandatory reading period. The original label is restored exactly.
+            root.querySelectorAll('.ack-btn').forEach(btn => {
+                const originalText = btn.textContent;
+                let timeLeft = 5;
+
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.textContent = `Please read... (${timeLeft}s)`;
+
+                const intervalId = setInterval(() => {
+                    timeLeft -= 1;
+                    if (timeLeft <= 0) {
+                        clearInterval(intervalId);
+                        acknowledgementIntervals.delete(intervalId);
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        btn.textContent = originalText;
+                        return;
+                    }
+                    btn.textContent = `Please read... (${timeLeft}s)`;
+                }, 1000);
+
+                acknowledgementIntervals.add(intervalId);
+            });
+
+            // Each Critical card owns a separate deadline and interval.
+            root.querySelectorAll('.critical-timer').forEach(timer => {
+                const publishedAt = new Date(timer.dataset.published);
+                const deadlineHours = Number.parseFloat(
+                    timer.dataset.deadlineHours || '24'
+                );
+                const deadline = publishedAt.getTime()
+                    + (deadlineHours * 60 * 60 * 1000);
+
+                const updateTimer = () => {
+                    const remaining = deadline - Date.now();
+                    if (Number.isNaN(remaining)) {
+                        timer.textContent = 'Invalid Date';
+                        return false;
+                    }
+                    if (remaining <= 0) {
+                        timer.textContent = 'DEADLINE MISSED - ESCALATED';
+                        return false;
+                    }
+
+                    const hours = Math.floor(remaining / 3600000);
+                    const minutes = Math.floor((remaining % 3600000) / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    timer.textContent = [hours, minutes, seconds]
+                        .map(value => String(value).padStart(2, '0'))
+                        .join(':');
+                    return true;
+                };
+
+                // Render immediately; do not create an interval for invalid or
+                // already-expired dates.
+                if (!updateTimer()) return;
+
+                const intervalId = setInterval(() => {
+                    if (!updateTimer()) {
+                        clearInterval(intervalId);
+                        criticalTimerIntervals.delete(intervalId);
+                    }
+                }, 1000);
+                criticalTimerIntervals.add(intervalId);
             });
         }
 
@@ -236,7 +333,10 @@
             render();
         });
 
-        load();
+        // The script is currently placed after the page markup, but explicitly
+        // waiting for DOMContentLoaded keeps initialization safe if the script
+        // is moved into the document head later.
+        document.addEventListener('DOMContentLoaded', load);
     </script>
 </body>
 </html>

@@ -121,35 +121,115 @@
             </div>
 
             <!-- Recent Activity -->
-            <div class="section-title">Recent Activity</div>
-            <div class="activity-list">
-                <div class="activity-item">
-                    <span class="activity-dot green"></span>
-                    <span class="activity-text">New announcement published: "Team Photo Session"</span>
-                    <span class="activity-time">2h ago</span>
-                </div>
-                <div class="activity-item">
-                    <span class="activity-dot purple"></span>
-                    <span class="activity-text">3 new documents uploaded to knowledge base</span>
-                    <span class="activity-time">4h ago</span>
-                </div>
-                <div class="activity-item">
-                    <span class="activity-dot orange"></span>
-                    <span class="activity-text">Guardrails flagged a chat: inappropriate request blocked</span>
-                    <span class="activity-time">5h ago</span>
-                </div>
-                <div class="activity-item">
-                    <span class="activity-dot green"></span>
-                    <span class="activity-text">AI Settings updated: embedding model changed</span>
-                    <span class="activity-time">1d ago</span>
-                </div>
-                <div class="activity-item">
-                    <span class="activity-dot purple"></span>
-                    <span class="activity-text">RAG seed data loaded: 12 knowledge entries</span>
-                    <span class="activity-time">2d ago</span>
-                </div>
+            <div class="section-title">📊 Frequently Asked Questions</div>
+            <div class="activity-list" id="faq-list">
+                <div class="activity-item"><span class="activity-text" style="color:#606080;">Loading...</span></div>
+            </div>
+
+            <div class="section-title" style="margin-top:24px;">❓ Unanswered Questions</div>
+            <div class="activity-list" id="unanswered-list">
+                <div class="activity-item"><span class="activity-text" style="color:#606080;">Loading...</span></div>
+            </div>
+
+            <div class="section-title" style="margin-top:24px;">📈 Engagement (Last 7 Days)</div>
+            <div class="activity-list" id="engagement-list">
+                <div class="activity-item"><span class="activity-text" style="color:#606080;">Loading...</span></div>
             </div>
         </div>
     </div>
+
+    <script>
+        // Load real dashboard data
+        async function loadDashboard() {
+            try {
+                // Load chat stats
+                const chatRes = await fetch('/api/admin/chat-logs?limit=1');
+                const chatData = await chatRes.json();
+                const stats = chatData.stats || {};
+
+                // Update stat cards with real data
+                const cards = document.querySelectorAll('.stat-card');
+                const statValues = [
+                    stats.total_conversations || 0,
+                    stats.unique_sessions || 0,
+                    stats.with_files || 0,
+                    stats.today || 0,
+                    stats.flagged || 0,
+                    stats.unanswered || 0,
+                ];
+                const statLabels = ['Total Chats', 'Unique Users', 'With Files', 'Today', '🚩 Flagged', '❓ Unanswered'];
+                const statIcons = ['💬', '👥', '📎', '📅', '⚠️', '❓'];
+                cards.forEach((card, i) => {
+                    if (i < statValues.length) {
+                        card.querySelector('.stat-num').textContent = statValues[i];
+                        card.querySelector('.stat-label').textContent = statLabels[i];
+                        card.querySelector('.stat-icon').textContent = statIcons[i];
+                    }
+                });
+            } catch(e) { console.debug('Stats load failed:', e); }
+
+            // Load FAQ
+            try {
+                const faqRes = await fetch('/api/admin/analytics/faq');
+                const faqData = await faqRes.json();
+                const faqList = document.getElementById('faq-list');
+                if (faqData.questions && faqData.questions.length > 0) {
+                    faqList.innerHTML = faqData.questions.slice(0, 8).map((q, i) => `
+                        <div class="activity-item">
+                            <span class="activity-dot purple"></span>
+                            <span class="activity-text">${esc(q.question).substring(0, 80)}</span>
+                            <span class="activity-time">${q.count}x</span>
+                        </div>
+                    `).join('');
+                } else {
+                    faqList.innerHTML = '<div class="activity-item"><span class="activity-text" style="color:#606080;">No questions logged yet.</span></div>';
+                }
+            } catch(e) { console.debug('FAQ load failed:', e); }
+
+            // Load unanswered
+            try {
+                const unRes = await fetch('/api/admin/analytics/unanswered');
+                const unData = await unRes.json();
+                const unList = document.getElementById('unanswered-list');
+                if (unData.questions && unData.questions.length > 0) {
+                    unList.innerHTML = unData.questions.slice(0, 6).map(q => `
+                        <div class="activity-item">
+                            <span class="activity-dot orange"></span>
+                            <span class="activity-text">${esc(q.user_message).substring(0, 80)}</span>
+                            <span class="activity-time">${q.timestamp ? q.timestamp.split(' ')[0] : ''}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    unList.innerHTML = '<div class="activity-item"><span class="activity-dot green"></span><span class="activity-text">All questions answered successfully! ✓</span></div>';
+                }
+            } catch(e) { console.debug('Unanswered load failed:', e); }
+
+            // Load engagement
+            try {
+                const engRes = await fetch('/api/admin/analytics/engagement');
+                const engData = await engRes.json();
+                const engList = document.getElementById('engagement-list');
+                const eng = engData.engagement || {};
+                const daily = eng.daily_activity || [];
+                let engHtml = '';
+                if (daily.length > 0) {
+                    engHtml += daily.map(d => `
+                        <div class="activity-item">
+                            <span class="activity-dot green"></span>
+                            <span class="activity-text">${d.day}</span>
+                            <span class="activity-time">${d.count} messages</span>
+                        </div>
+                    `).join('');
+                }
+                engHtml += `<div class="activity-item"><span class="activity-dot purple"></span><span class="activity-text">Peak hour: ${eng.peak_hour || 'N/A'} | Avg response: ${eng.avg_response_ms ? (eng.avg_response_ms/1000).toFixed(1)+'s' : 'N/A'} | Engaged users (3+ msgs): ${eng.engaged_users || 0}</span></div>`;
+                engList.innerHTML = engHtml || '<div class="activity-item"><span class="activity-text" style="color:#606080;">No engagement data yet.</span></div>';
+            } catch(e) { console.debug('Engagement load failed:', e); }
+        }
+
+        function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
+
+        loadDashboard();
+    </script>
+
 </body>
 </html>

@@ -54,26 +54,6 @@
         .empty-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
         .empty-desc { font-size: 0.86rem; color: #8080a0; margin-bottom: 20px; }
 
-        /* Import Knowledge Card */
-        .import-card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15); border-radius: 14px; padding: 20px 22px; margin-bottom: 22px; }
-        .import-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-        .import-icon { font-size: 1.4rem; }
-        .import-title-area { display: flex; flex-direction: column; gap: 2px; }
-        .import-title { font-size: 0.9rem; font-weight: 600; color: #e8e8f0; }
-        .import-desc { font-size: 0.72rem; color: #8080a0; }
-        .import-body { display: flex; flex-direction: column; gap: 10px; }
-        .import-upload-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .import-choose { font-size: 0.76rem; }
-        .import-filename { font-size: 0.76rem; color: #8080a0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .import-format-hint { font-size: 0.68rem; color: #505070; }
-        .import-format-hint code { background: rgba(124,58,237,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; color: #a78bfa; }
-        .import-result { padding: 14px 16px; border-radius: 10px; font-size: 0.8rem; line-height: 1.6; }
-        .import-result.success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: #10b981; }
-        .import-result.error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; }
-        .import-result.processing { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); color: #a78bfa; }
-        .import-stat { display: inline-block; margin-right: 16px; }
-        .import-stat strong { font-weight: 700; }
-
         /* Modal */
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
         .overlay.open { display: flex; }
@@ -101,29 +81,6 @@
             <div class="stats-row">
                 <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Entries</div></div>
                 <div class="stat-card"><div class="stat-num" id="stat-categories">0</div><div class="stat-label">Categories</div></div>
-            </div>
-
-            <!-- Import Knowledge Card -->
-            <div class="import-card" id="import-card">
-                <div class="import-header">
-                    <span class="import-icon">📂</span>
-                    <div class="import-title-area">
-                        <span class="import-title">Import Knowledge</span>
-                        <span class="import-desc">Upload a JSON file to bulk-import entries into the knowledge base.</span>
-                    </div>
-                </div>
-                <div class="import-body">
-                    <div class="import-upload-row">
-                        <input type="file" id="import-file" accept=".json" style="display:none">
-                        <button class="btn btn-ghost import-choose" onclick="document.getElementById('import-file').click()">Choose JSON File</button>
-                        <span class="import-filename" id="import-filename">No file selected</span>
-                        <button class="btn btn-primary btn-sm" id="import-btn" disabled>Import</button>
-                    </div>
-                    <div class="import-format-hint">
-                        Format: <code>[{"category":"...", "title":"...", "content":"..."}]</code>
-                    </div>
-                    <div class="import-result" id="import-result" style="display:none;"></div>
-                </div>
             </div>
 
             <!-- Toolbar -->
@@ -302,89 +259,6 @@
         }
 
         render();
-
-        // ============================================================
-        // Bulk Import Logic
-        // ============================================================
-        const importFile = document.getElementById('import-file');
-        const importBtn = document.getElementById('import-btn');
-        const importFilename = document.getElementById('import-filename');
-        const importResult = document.getElementById('import-result');
-
-        importFile.addEventListener('change', () => {
-            if (importFile.files.length > 0) {
-                importFilename.textContent = importFile.files[0].name;
-                importBtn.disabled = false;
-            } else {
-                importFilename.textContent = 'No file selected';
-                importBtn.disabled = true;
-            }
-        });
-
-        importBtn.addEventListener('click', async () => {
-            const file = importFile.files[0];
-            if (!file) return;
-
-            // Show processing state
-            importBtn.disabled = true;
-            importBtn.textContent = 'Importing...';
-            importResult.style.display = 'block';
-            importResult.className = 'import-result processing';
-            importResult.innerHTML = '⏳ Processing entries… This may take a moment for large files.';
-
-            try {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const res = await fetch('/api/v1/admin/knowledge/import', {
-                    method: 'POST',
-                    headers: { 'X-User-Role': 'Organiser' },
-                    body: formData,
-                });
-
-                const data = await res.json();
-
-                if (!res.ok) {
-                    importResult.className = 'import-result error';
-                    importResult.innerHTML = '✕ ' + (data.detail || 'Import failed.');
-                    return;
-                }
-
-                // Show summary
-                const hasErrors = data.failed > 0;
-                importResult.className = 'import-result ' + (hasErrors ? 'error' : 'success');
-                let html = '<strong>' + (hasErrors ? '⚠️ Import Completed with Errors' : '✓ Import Complete') + '</strong><br>';
-                html += '<span class="import-stat">Total: <strong>' + data.total + '</strong></span>';
-                html += '<span class="import-stat">Imported: <strong>' + data.imported + '</strong></span>';
-                html += '<span class="import-stat">Failed: <strong>' + data.failed + '</strong></span>';
-                html += '<span class="import-stat">Time: <strong>' + data.time_seconds + 's</strong></span>';
-
-                if (data.errors && data.errors.length > 0) {
-                    html += '<br><br><strong>Errors:</strong><br>';
-                    for (const err of data.errors.slice(0, 5)) {
-                        html += '• ' + (err.title || 'Entry ' + err.index) + ': ' + err.detail + '<br>';
-                    }
-                    if (data.errors.length > 5) html += '… and ' + (data.errors.length - 5) + ' more.';
-                }
-
-                importResult.innerHTML = html;
-
-                // Refresh the KB list (reload page data)
-                if (data.imported > 0) {
-                    document.getElementById('stat-total').textContent = parseInt(document.getElementById('stat-total').textContent) + data.imported;
-                }
-
-            } catch (err) {
-                importResult.className = 'import-result error';
-                importResult.innerHTML = '✕ Network error: ' + err.message;
-            }
-
-            // Reset
-            importBtn.textContent = 'Import';
-            importBtn.disabled = false;
-            importFile.value = '';
-            importFilename.textContent = 'No file selected';
-        });
     </script>
 </body>
 </html>

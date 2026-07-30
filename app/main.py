@@ -386,6 +386,30 @@ async def get_chat_logs(limit: int = 100, offset: int = 0):
     }
 
 
+@app.get("/api/admin/analytics/faq")
+async def get_faq_analytics():
+    """Return frequently asked questions."""
+    from app.services.chat_logger import get_top_questions
+    return {"questions": get_top_questions(limit=15)}
+
+
+@app.get("/api/admin/analytics/unanswered")
+async def get_unanswered_analytics():
+    """Return questions the AI could not answer."""
+    from app.services.chat_logger import get_unanswered_questions
+    return {"questions": get_unanswered_questions(limit=20)}
+
+
+@app.get("/api/admin/analytics/engagement")
+async def get_engagement_analytics():
+    """Return participant engagement metrics."""
+    from app.services.chat_logger import get_engagement_metrics, get_stats
+    return {
+        "engagement": get_engagement_metrics(),
+        "stats": get_stats(),
+    }
+
+
 @app.delete("/api/admin/documents/{doc_id}")
 async def remove_document(doc_id: int):
     """Delete a document record from the registry."""

@@ -269,6 +269,18 @@ async def team_page():
     return FileResponse(_tpl("team.html"))
 
 
+@app.get("/register")
+async def register_page():
+    """Registration page - collect participant registration details."""
+    return FileResponse(_tpl("register.html"))
+
+
+@app.get("/login")
+async def login_page():
+    """Login page - serve the role-based onboarding interface."""
+    return FileResponse(_tpl("onboarding.html"))
+
+
 @app.get("/onboarding")
 async def onboarding_page():
     """Onboarding page - collect participant info."""

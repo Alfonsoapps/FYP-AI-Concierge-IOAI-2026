@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - IOAI 2027</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #0c0c1d; color: #e8e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; -webkit-font-smoothing: antialiased; padding: 20px; }
+        .registration-card { width: 100%; max-width: 440px; background: rgba(14, 14, 32, 0.9); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 20px; padding: 40px 32px; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(124, 58, 237, 0.06); }
+        .registration-header { text-align: center; margin-bottom: 32px; }
+        .registration-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #7c3aed, #a78bfa); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .registration-header p { font-size: 0.88rem; color: #8080a0; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: #a0a0c0; margin-bottom: 6px; letter-spacing: 0.03em; }
+        .form-group input, .form-group select { width: 100%; padding: 12px 14px; background-color: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; color: #e8e8f0; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.2s ease; }
+        .form-group input:focus, .form-group select:focus { border-color: rgba(124, 58, 237, 0.5); }
+        .form-group input::placeholder { color: #505070; }
+        .form-group select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238080a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+        .form-group select option { background: #14142a; color: #e8e8f0; }
+        .error-msg { display: none; margin-top: 5px; color: #ef4444; font-size: 0.72rem; }
+        .form-group.has-error input, .form-group.has-error select { border-color: #ef4444; }
+        .form-group.has-error .error-msg { display: block; }
+        .status-msg { display: none; margin: 0 0 16px; padding: 12px; border-radius: 10px; font-size: 0.8rem; text-align: center; }
+        .status-msg.visible { display: block; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.25); color: #a78bfa; }
+        .status-msg.error { display: block; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; }
+        .btn-register { width: 100%; padding: 14px; background: linear-gradient(135deg, #7c3aed, #6d28d9); border: none; border-radius: 12px; color: white; font: 600 0.95rem inherit; cursor: pointer; margin-top: 8px; transition: all 0.2s ease; }
+        .btn-register:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4); }
+        .btn-register:active { transform: scale(0.98); }
+        .skip-login { display: block; width: fit-content; margin: 18px auto 0; color: #a78bfa; font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+        .skip-login:hover { color: #c4b5fd; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <main class="registration-card">
+        <header class="registration-header"><h1>Register for IOAI 2027</h1><p>Create your participant profile to get started.</p></header>
+        <div class="status-msg" id="registration-status" role="status" aria-live="polite"></div>
+        <form id="registration-form" novalidate>
+            <div class="form-group" id="group-name"><label for="field-name">Name</label><input type="text" id="field-name" placeholder="Enter your full name" autocomplete="name" required><div class="error-msg">Name is required.</div></div>
+            <div class="form-group" id="group-password"><label for="field-password">Password</label><input type="password" id="field-password" placeholder="Enter your password" autocomplete="new-password" required><div class="error-msg">Password is required.</div></div>
+            <div class="form-group" id="group-role"><label for="field-role">Role</label><select id="field-role" required><option value="" disabled selected>Select your role</option><option value="Student Participant">Student Participant</option><option value="Team Leader">Team Leader</option></select><div class="error-msg">Role is required.</div></div>
+            <button type="submit" class="btn-register">Register</button>
+        </form>
+        <a class="skip-login" href="/login">Skip to Login</a>
+    </main>
+    <script>
+        const REGISTRY_KEY = 'ioai_registered_participants';
+        const PARTICIPANT_ROLES = ['Student Participant', 'Team Leader'];
+        const registrationState = { name: '', password: '', role: '' };
+        const fields = { name: document.getElementById('field-name'), password: document.getElementById('field-password'), role: document.getElementById('field-role') };
+        Object.entries(fields).forEach(([key, field]) => field.addEventListener(key === 'role' ? 'change' : 'input', () => { registrationState[key] = field.value; document.getElementById(`group-${key}`).classList.remove('has-error'); }));
+        function mockSubmit(payload) { let registry = []; try { const stored = localStorage.getItem(REGISTRY_KEY); const parsed = stored === null ? [] : JSON.parse(stored); registry = Array.isArray(parsed) ? parsed : []; } catch (_) { registry = []; } registry.push({ name: payload.name, role: payload.role }); localStorage.setItem(REGISTRY_KEY, JSON.stringify(registry)); }
+        document.getElementById('registration-form').addEventListener('submit', (event) => {
+            event.preventDefault(); document.querySelectorAll('.form-group').forEach(group => group.classList.remove('has-error'));
+            const normalizedName = registrationState.name.trim(); const validRole = PARTICIPANT_ROLES.includes(registrationState.role); let valid = true;
+            if (!normalizedName) { document.getElementById('group-name').classList.add('has-error'); valid = false; }
+            if (!registrationState.password) { document.getElementById('group-password').classList.add('has-error'); valid = false; }
+            if (!validRole) { document.getElementById('group-role').classList.add('has-error'); valid = false; }
+            if (!valid) return;
+            const payload = { name: normalizedName, password: registrationState.password, role: registrationState.role };
+            const status = document.getElementById('registration-status');
+            try { mockSubmit(payload); status.textContent = 'Registration saved. You can now continue to login.'; status.className = 'status-msg visible'; fields.name.value = ''; fields.password.value = ''; fields.role.value = ''; Object.assign(registrationState, { name: '', password: '', role: '' }); } catch (_) { status.textContent = 'Registration could not be saved in this browser. Please try again.'; status.className = 'status-msg error'; }
+        });
+    </script>
+</body>
+</html>

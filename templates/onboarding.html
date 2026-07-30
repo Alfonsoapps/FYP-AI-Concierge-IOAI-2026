@@ -185,6 +185,12 @@
                 <div class="error-msg">Please select your role.</div>
             </div>
 
+            <div class="form-group" id="group-participant-password" style="display:none;">
+                <label for="field-participant-password">Password</label>
+                <input type="password" id="field-participant-password" placeholder="Enter your password" autocomplete="current-password">
+                <div class="error-msg">Please enter your password.</div>
+            </div>
+
             <div class="form-group" id="group-admin-password" style="display:none;">
                 <label for="field-admin-password">Admin Password</label>
                 <input type="password" id="field-admin-password" placeholder="Enter admin password">
@@ -216,8 +222,17 @@
     <script>
         const ADMIN_PASSWORD = 'IOAI-ADMIN-2027';
 
-        // Show/hide admin password field based on role selection
+        // Show/hide role-specific password fields based on role selection
         document.getElementById('field-role').addEventListener('change', function() {
+            const participantPwGroup = document.getElementById('group-participant-password');
+            const participantPwInput = document.getElementById('field-participant-password');
+            const isParticipantRole = this.value === 'Student Participant' || this.value === 'Team Leader';
+            participantPwGroup.style.display = isParticipantRole ? 'block' : 'none';
+            participantPwInput.required = isParticipantRole;
+            if (!isParticipantRole) {
+                participantPwGroup.classList.remove('has-error');
+            }
+
             const pwGroup = document.getElementById('group-admin-password');
             if (this.value === 'Organiser') {
                 pwGroup.style.display = 'block';
@@ -232,6 +247,7 @@
 
             const name = document.getElementById('field-name').value.trim();
             const role = document.getElementById('field-role').value;
+            const participantPassword = document.getElementById('field-participant-password').value;
             const country = document.getElementById('field-country').value.trim();
             const language = document.getElementById('field-language').value;
 
@@ -247,6 +263,10 @@
             }
             if (!role) {
                 document.getElementById('group-role').classList.add('has-error');
+                valid = false;
+            }
+            if ((role === 'Student Participant' || role === 'Team Leader') && !participantPassword) {
+                document.getElementById('group-participant-password').classList.add('has-error');
                 valid = false;
             }
             if (!country) {

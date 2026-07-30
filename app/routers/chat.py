@@ -193,6 +193,8 @@ async def chat(
         return ChatResponse(reply=_BLOCKED_REPLY)
 
     # --- Standard RAG pipeline ---
+    import time as _time
+    _start = _time.time()
     try:
         reply = await chat_pipeline.generate_reply(user_message)
     except ValueError as exc:
@@ -208,7 +210,21 @@ async def chat(
             detail="Failed to get a verified response from the AI service.",
         ) from exc
 
-    logger.info("Grounded AI reply generated (%d chars)", len(reply))
+    _elapsed_ms = int((_time.time() - _start) * 1000)
+
+    # Log the conversation
+    try:
+        from app.services.chat_logger import log_chat
+        log_chat(
+            session_id=x_user_id or "anonymous",
+            user_message=user_message,
+            ai_response=reply,
+            response_time_ms=_elapsed_ms,
+        )
+    except Exception:
+        logger.debug("Chat logging failed", exc_info=True)
+
+    logger.info("Grounded AI reply generated (%d chars, %dms)", len(reply), _elapsed_ms)
     return ChatResponse(reply=reply)
 
 
@@ -276,21 +292,20 @@ async def chat_upload(
             return ChatResponse(reply=guarded_reply)
 
     # Step 4-5: Generate reply with or without document content
+    import time as _time
+    _start = _time.time()
     try:
         if upload_result and upload_result.extracted_text:
-            # Document has extractable text → use the document-aware pipeline
             reply = await chat_pipeline.generate_reply_with_document(
                 user_message, upload_result.extracted_text
             )
         elif upload_result and upload_result.is_image:
-            # Image uploaded — vision not yet supported, acknowledge it
             reply = await chat_pipeline.generate_reply(user_message)
             reply += (
                 f"\n\n_(I can see you've attached an image **{upload_result.filename}** — "
                 f"image analysis is not yet available, but I've noted it for future support.)_"
             )
         else:
-            # No file or empty extraction → standard RAG pipeline
             reply = await chat_pipeline.generate_reply(user_message)
 
     except ValueError as exc:
@@ -306,11 +321,25 @@ async def chat_upload(
             detail="Failed to get a verified response from the AI service.",
         ) from exc
     finally:
-        # Step 6: Always clean up temp file
         if upload_result:
             delete_temp_file(upload_result.saved_path)
 
-    logger.info("Upload chat reply generated (%d chars)", len(reply))
+    _elapsed_ms = int((_time.time() - _start) * 1000)
+
+    # Log the conversation
+    try:
+        from app.services.chat_logger import log_chat
+        log_chat(
+            session_id=x_user_id or "anonymous",
+            user_message=user_message,
+            ai_response=reply,
+            response_time_ms=_elapsed_ms,
+            filename=upload_result.filename if upload_result else None,
+        )
+    except Exception:
+        logger.debug("Chat logging failed", exc_info=True)
+
+    logger.info("Upload chat reply generated (%d chars, %dms)", len(reply), _elapsed_ms)
     return ChatResponse(reply=reply)
 
 

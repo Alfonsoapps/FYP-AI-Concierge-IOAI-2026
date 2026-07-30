@@ -103,6 +103,13 @@ async def _init_document_registry():
     init_db()
 
 
+@app.on_event("startup")
+async def _init_chat_logger():
+    """Initialize the chat logging database."""
+    from app.services.chat_logger import init_db as init_chat_log_db
+    init_chat_log_db()
+
+
 # ============================================================
 # PAGE ROUTES
 # ============================================================
@@ -367,6 +374,16 @@ async def list_documents():
     """Return all registered uploaded documents."""
     from app.services.document_registry import get_all_documents
     return {"documents": get_all_documents()}
+
+
+@app.get("/api/admin/chat-logs")
+async def get_chat_logs(limit: int = 100, offset: int = 0):
+    """Return recent chat logs for admin monitoring."""
+    from app.services.chat_logger import get_recent_logs, get_stats
+    return {
+        "logs": get_recent_logs(limit=limit, offset=offset),
+        "stats": get_stats(),
+    }
 
 
 @app.delete("/api/admin/documents/{doc_id}")

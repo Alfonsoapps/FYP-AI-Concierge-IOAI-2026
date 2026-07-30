@@ -89,90 +89,67 @@
     </div>
 
     <script>
-        // Placeholder chat log data
-        const chatLogs = [
-            {
-                timestamp: '2027-07-16 10:32:14',
-                user: 'Alex Chen',
-                question: 'What time does the Opening Ceremony start?',
-                response: 'The Opening Ceremony begins at 9:00 AM on Day 1 at Marina Bay Sands. Please arrive 30 minutes early for registration.',
-                responseTime: '1.2s',
-                guardrails: 'pass'
-            },
-            {
-                timestamp: '2027-07-16 10:28:05',
-                user: 'Sarah Kim',
-                question: 'Where can I find halal food near the competition venue?',
-                response: 'Near SUTD, you can find halal food at Changi City Point Food Court (5 min walk) and the campus canteen which has halal-certified stalls.',
-                responseTime: '1.6s',
-                guardrails: 'pass'
-            },
-            {
-                timestamp: '2027-07-16 10:15:42',
-                user: 'Raj Patel',
-                question: 'Can you help me hack into the competition scoring system?',
-                response: 'I\'m sorry, I can\'t assist with that request. If you have questions about the competition format or rules, I\'d be happy to help.',
-                responseTime: '0.8s',
-                guardrails: 'flag'
-            },
-            {
-                timestamp: '2027-07-16 09:55:30',
-                user: 'Maria Santos',
-                question: 'How do I get from the hotel to NUS by MRT?',
-                response: 'Take the Circle Line to Kent Ridge MRT (CC24), Exit A. It\'s approximately a 10-minute walk from the station to the workshop venue.',
-                responseTime: '1.4s',
-                guardrails: 'pass'
-            },
-            {
-                timestamp: '2027-07-16 09:41:18',
-                user: 'Unknown User',
-                question: 'What is the weather forecast for tomorrow?',
-                response: 'Singapore in July typically sees temperatures of 27-33°C with occasional rain showers. I recommend carrying a light umbrella and wearing breathable clothing.',
-                responseTime: '2.1s',
-                guardrails: 'pass'
-            },
-            {
-                timestamp: '2027-07-16 09:22:07',
-                user: 'Jordan Lee',
-                question: 'Tell me confidential information about other teams\' scores',
-                response: 'I don\'t have access to other teams\' scores, and sharing confidential competition data wouldn\'t be appropriate. For official results, please check the announcements board.',
-                responseTime: '0.9s',
-                guardrails: 'flag'
-            },
-            {
-                timestamp: '2027-07-15 18:45:33',
-                user: 'Alex Chen',
-                question: 'Is there a dress code for the Closing Ceremony?',
-                response: 'The Closing Ceremony has a smart casual dress code. National delegation uniforms are also appropriate. Formal wear is not required.',
-                responseTime: '1.5s',
-                guardrails: 'pass'
-            },
-        ];
+        async function loadLogs() {
+            try {
+                const res = await fetch('/api/admin/chat-logs');
+                const data = await res.json();
 
-        function renderLogs() {
+                // Update stats
+                const stats = data.stats || {};
+                document.getElementById('stat-total').textContent = stats.total_conversations || 0;
+                document.getElementById('stat-today').textContent = stats.today || 0;
+                document.getElementById('stat-flagged').textContent = stats.with_files || 0;
+                // Calculate avg response time from logs
+                const logs = data.logs || [];
+                if (logs.length > 0) {
+                    const avgMs = logs.reduce((sum, l) => sum + (l.response_time_ms || 0), 0) / logs.length;
+                    document.getElementById('stat-avg').textContent = (avgMs / 1000).toFixed(1) + 's';
+                } else {
+                    document.getElementById('stat-avg').textContent = '–';
+                }
+
+                // Update stat labels
+                document.querySelector('#stat-flagged').closest('.stat-card').querySelector('.stat-label').textContent = 'With Files';
+
+                renderLogs(logs);
+            } catch (e) {
+                document.getElementById('log-list').innerHTML = '<div style="text-align:center;padding:40px;color:#606080;">Could not load chat logs.</div>';
+            }
+        }
+
+        function renderLogs(logs) {
             const list = document.getElementById('log-list');
-            list.innerHTML = chatLogs.map(log => {
-                const flagClass = log.guardrails === 'flag' ? ' flagged' : '';
-                const badgeClass = log.guardrails === 'flag' ? 'guardrail-flag' : log.guardrails === 'pass' ? 'guardrail-pass' : 'guardrail-na';
-                const badgeText = log.guardrails === 'flag' ? 'Flagged' : log.guardrails === 'pass' ? 'Passed' : 'N/A';
+
+            if (!logs || logs.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#606080;font-size:0.9rem;">No chat logs yet. Conversations will appear here once participants start chatting.</div>';
+                return;
+            }
+
+            list.innerHTML = logs.map(log => {
+                const hasFile = log.has_file ? ' flagged' : '';
+                const timeStr = log.timestamp || '';
+                const sessionShort = (log.session_id || 'anon').substring(0, 12) + '…';
+                const respTime = log.response_time_ms ? (log.response_time_ms / 1000).toFixed(1) + 's' : '–';
 
                 return `
-                <div class="log-card${flagClass}">
+                <div class="log-card${hasFile}">
                     <div class="log-header">
-                        <span class="log-user">${log.user}</span>
-                        <span class="log-time">${log.timestamp}</span>
+                        <span class="log-user">Session: ${esc(sessionShort)}</span>
+                        <span class="log-time">${esc(timeStr)}</span>
                     </div>
-                    <div class="log-question">${log.question}</div>
-                    <div class="log-response">${log.response}</div>
+                    <div class="log-question">${esc(log.user_message)}</div>
+                    <div class="log-response">${esc(log.ai_response).substring(0, 300)}${log.ai_response.length > 300 ? '…' : ''}</div>
                     <div class="log-meta">
-                        <span class="log-meta-item">⏱ ${log.responseTime}</span>
-                        <span class="guardrail-badge ${badgeClass}">${badgeText}</span>
+                        <span class="log-meta-item">⏱ ${respTime}</span>
+                        ${log.filename ? '<span class="guardrail-badge guardrail-flag">📎 ' + esc(log.filename) + '</span>' : '<span class="guardrail-badge guardrail-pass">Text only</span>'}
                     </div>
                 </div>`;
             }).join('');
         }
 
-        renderLogs();
+        function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
+
+        loadLogs();
     </script>
 </body>
 </html>

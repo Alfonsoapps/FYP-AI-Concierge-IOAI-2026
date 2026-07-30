@@ -181,3 +181,35 @@ async def api_update_alert_status(alert_id: str, body: AlertStatusBody):
         raise HTTPException(status_code=400, detail=str(e))
     except svc.SafetyNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ------------------------------------------------------------------
+# Registration + My Team (F5 / F7 requirements)
+# ------------------------------------------------------------------
+
+class RegisterBody(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    country: str = Field(..., min_length=1, max_length=100)
+    role: str = Field(..., min_length=1, max_length=50)
+
+
+@router.post("/api/team/register")
+async def api_register(body: RegisterBody):
+    """Register a participant into their country's delegation team (called during onboarding)."""
+    try:
+        return svc.register_participant(body.name, body.country, body.role)
+    except svc.SafetyValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/team/my-team")
+async def api_my_team(user: Optional[str] = Query(default=None)):
+    """Return the team roster for a participant (read-only view)."""
+    if not user:
+        raise HTTPException(status_code=400, detail="user query parameter required.")
+    try:
+        return svc.get_my_team(user)
+    except svc.SafetyValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except svc.SafetyNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))

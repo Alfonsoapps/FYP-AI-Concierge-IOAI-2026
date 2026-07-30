@@ -274,7 +274,14 @@
             localStorage.setItem('participant_country', country);
             localStorage.setItem('participant_language', language);
 
-            // Redirect: admin goes to dashboard, others to avatar setup
+            // Register server-side so the participant appears in their delegation
+            fetch('/api/team/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, country: country, role: role }),
+            }).catch(() => {}); // Best-effort, don't block navigation
+
+            // Redirect: admin goes to dashboard, others to home
             if (role === 'Organiser') {
                 window.location.href = '/admin';
             } else {

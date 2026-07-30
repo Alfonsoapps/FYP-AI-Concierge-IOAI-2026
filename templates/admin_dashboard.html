@@ -135,6 +135,84 @@
             <div class="activity-list" id="engagement-list">
                 <div class="activity-item"><span class="activity-text" style="color:#606080;">Loading...</span></div>
             </div>
+
+            <!-- Registered Participants -->
+            <style>
+                .participants-section { margin-top: 28px; }
+                .participants-table-wrap { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15); border-radius: 14px; overflow-x: auto; }
+                .participants-table { width: 100%; min-width: 360px; border-collapse: collapse; }
+                .participants-table th, .participants-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .participants-table th { color: #a0a0c0; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+                .participants-table td { color: #b0b0c8; font-size: 0.82rem; }
+                .participants-table tbody tr:last-child td { border-bottom: 0; }
+                .participants-empty { color: #606080 !important; text-align: center !important; }
+                @media (max-width: 600px) {
+                    .participants-table th, .participants-table td { padding: 12px 14px; }
+                }
+            </style>
+            <section class="participants-section" aria-labelledby="registered-participants-title">
+                <h2 class="section-title" id="registered-participants-title">Registered Participants</h2>
+                <div class="participants-table-wrap">
+                    <table class="participants-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Role</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registered-participants-body">
+                            <tr><td class="participants-empty" colspan="2">No registered participants yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <script>
+                function loadRegisteredParticipants() {
+                    const tableBody = document.getElementById('registered-participants-body');
+                    if (!tableBody) return;
+
+                    let registry = [];
+                    try {
+                        const storedRegistry = localStorage.getItem('ioai_registered_participants');
+                        const parsedRegistry = storedRegistry === null ? [] : JSON.parse(storedRegistry);
+                        registry = Array.isArray(parsedRegistry) ? parsedRegistry : [];
+                    } catch (error) {
+                        registry = [];
+                    }
+
+                    const participants = registry.filter(record =>
+                        record &&
+                        typeof record === 'object' &&
+                        (record.role === 'Student Participant' || record.role === 'Team Leader')
+                    );
+
+                    tableBody.textContent = '';
+                    if (participants.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 2;
+                        cell.className = 'participants-empty';
+                        cell.textContent = 'No registered participants yet.';
+                        row.appendChild(cell);
+                        tableBody.appendChild(row);
+                        return;
+                    }
+
+                    participants.forEach(participant => {
+                        const row = document.createElement('tr');
+                        const nameCell = document.createElement('td');
+                        const roleCell = document.createElement('td');
+                        nameCell.textContent = String(participant.name ?? '');
+                        roleCell.textContent = participant.role;
+                        row.appendChild(nameCell);
+                        row.appendChild(roleCell);
+                        tableBody.appendChild(row);
+                    });
+                }
+
+                loadRegisteredParticipants();
+            </script>
         </div>
     </div>
 

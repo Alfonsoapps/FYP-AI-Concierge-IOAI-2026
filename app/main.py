@@ -33,9 +33,12 @@ from app.routers import chat
 from app.routers import tts
 from app.routers import announcements
 from app.routers import team_safety
+from app.routers import safety
+from app.routers import explore
 from app.routers.chat import router as chat_router
 from app.services import announcement_service
 from app.services import team_safety_service
+from app.services import explore_service
 
 # The RAG router depends on chromadb, which may be unavailable in some
 # environments (e.g. no prebuilt wheel for the running Python version).
@@ -78,6 +81,8 @@ if _RAG_AVAILABLE:
     app.include_router(admin.router, tags=["Admin"])
 app.include_router(announcements.router)
 app.include_router(team_safety.router)
+app.include_router(safety.router)
+app.include_router(explore.router)
 
 # Serve static assets (CSS, JS, Live2D models, images)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -94,6 +99,12 @@ async def _init_announcements():
 async def _init_team_safety():
     """Seed the Team Leader + Safety in-memory store with sample data."""
     team_safety_service.seed_sample_data()
+
+
+@app.on_event("startup")
+async def _init_explore():
+    """Initialize the Explore module database."""
+    explore_service.init_db()
 
 
 @app.on_event("startup")
@@ -259,7 +270,7 @@ async def onboarding_page():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "service": settings.app_name}
+    return {"status": "healthy", "service": settings.app_name, "version": "2025-07-16-v2"}
 
 
 @app.post("/api/admin/uploads")

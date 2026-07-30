@@ -62,14 +62,25 @@ window.TeamSafety = (function () {
     function role() { return localStorage.getItem('participant_role') || ''; }
     function name() { return localStorage.getItem('participant_name') || ''; }
 
-    // Restrict Team Leader pages to the Team Leader role. Non-leaders are
-    // redirected home. If onboarding was skipped, we allow through so the
-    // demo remains usable.
+    // Restrict admin-only team pages (SOS management) to Team Leaders.
+    // Students and Team Leaders can both view the team dashboard and members.
     function requireLeader() {
+        const r = role();
+        if (r && r !== 'Team Leader' && r !== 'Student Participant') {
+            window.location.href = '/';
+        }
+    }
+
+    // Strict leader-only check for pages like SOS management.
+    function requireLeaderOnly() {
         const r = role();
         if (r && r !== 'Team Leader') {
             window.location.href = '/';
         }
+    }
+
+    function isLeader() {
+        return role() === 'Team Leader';
     }
 
     // Simple toast notification.
@@ -96,6 +107,8 @@ window.TeamSafety = (function () {
         role: role,
         name: name,
         requireLeader: requireLeader,
+        requireLeaderOnly: requireLeaderOnly,
+        isLeader: isLeader,
         toast: toast,
     };
 })();

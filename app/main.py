@@ -161,6 +161,14 @@ async def admin_announcements_page(request: Request):
     )
 
 
+@app.get("/admin/schedule")
+async def admin_schedule_page(request: Request):
+    """Admin schedule management page."""
+    return templates.TemplateResponse(
+        request, "admin_schedule.html", {"request": request, "active_admin": "schedule"}
+    )
+
+
 @app.get("/admin/uploads")
 async def admin_uploads_page(request: Request):
     """Admin document upload page."""

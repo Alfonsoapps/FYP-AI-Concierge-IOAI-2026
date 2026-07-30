@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Schedule - Admin</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #0c0c1d; color: #e8e8f0; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #7c3aed, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .page-header p { font-size: 0.86rem; color: #8080a0; }
+
+        .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+        .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.82rem; font-weight: 600; font-family: inherit; transition: all 0.2s ease; }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
+        .btn-sm { padding: 6px 12px; font-size: 0.72rem; border-radius: 8px; }
+        .btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #a0a0c0; }
+        .btn-ghost:hover { border-color: rgba(124,58,237,0.4); color: #a78bfa; }
+        .btn-danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #ef4444; }
+        .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+        .filter-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); color: #8080a0; font-size: 0.74rem; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
+        .filter-btn:hover { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #a78bfa; }
+        .filter-btn.active { background: rgba(124,58,237,0.15); border-color: #7c3aed; color: #e8e8f0; }
+
+        .stats-row { display: flex; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+        .stat-card { flex: 1; min-width: 80px; background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.15); border-radius: 12px; padding: 14px; text-align: center; }
+        .stat-num { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
+        .stat-label { font-size: 0.64rem; color: #8080a0; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+        .event-list { display: flex; flex-direction: column; gap: 10px; }
+        .event-card { background: rgba(14,14,32,0.9); border: 1px solid rgba(124,58,237,0.12); border-radius: 12px; padding: 16px 18px; transition: border-color 0.2s ease; }
+        .event-card:hover { border-color: rgba(124,58,237,0.3); }
+        .event-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+        .event-card-title { font-size: 0.92rem; font-weight: 600; color: #e8e8f0; }
+        .event-card-details { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.76rem; color: #8080a0; margin-bottom: 8px; }
+        .event-detail { display: flex; align-items: center; gap: 4px; }
+        .event-card-desc { font-size: 0.8rem; color: #b0b0c8; line-height: 1.5; margin-bottom: 10px; }
+        .event-card-actions { display: flex; gap: 6px; }
+        .event-badge { font-size: 0.64rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+        .badge-day1 { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2); color: #a78bfa; }
+        .badge-day2 { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: #60a5fa; }
+        .badge-day3 { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #10b981; }
+        .badge-day4 { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); color: #fb923c; }
+        .badge-category { background: rgba(128,128,160,0.1); border: 1px solid rgba(128,128,160,0.2); color: #8080a0; }
+
+        /* Modal */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .overlay.open { display: flex; }
+        .modal { width: 100%; max-width: 520px; background: #14142a; border: 1px solid rgba(124,58,237,0.3); border-radius: 16px; padding: 28px 24px; max-height: 90vh; overflow-y: auto; }
+        .modal h2 { font-size: 1.1rem; margin-bottom: 18px; }
+        .fg { margin-bottom: 14px; }
+        .fg label { display: block; font-size: 0.74rem; font-weight: 600; color: #a0a0c0; margin-bottom: 6px; }
+        .fg input, .fg textarea, .fg select { width: 100%; padding: 11px 13px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e8e8f0; font-size: 0.84rem; font-family: inherit; outline: none; }
+        .fg textarea { resize: vertical; min-height: 80px; }
+        .fg select option { background: #14142a; }
+        .fg input:focus, .fg textarea:focus, .fg select:focus { border-color: rgba(124,58,237,0.5); }
+        .fg-row { display: flex; gap: 12px; }
+        .fg-row .fg { flex: 1; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+        .empty-state { text-align: center; padding: 60px 24px; color: #505070; }
+        .empty-icon { font-size: 3rem; margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        {% include 'partials/admin_sidebar.html' %}
+        <div class="admin-main">
+            <div class="page-header">
+                <h1>Schedule Management</h1>
+                <p>Manage event schedule entries visible to all participants.</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Events</div></div>
+                <div class="stat-card"><div class="stat-num" id="stat-days">0</div><div class="stat-label">Days</div></div>
+                <div class="stat-card"><div class="stat-num" id="stat-venues">0</div><div class="stat-label">Venues</div></div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="filter-btn active" data-day="all">All Days</button>
+                <button class="filter-btn" data-day="Day 1">Day 1</button>
+                <button class="filter-btn" data-day="Day 2">Day 2</button>
+                <button class="filter-btn" data-day="Day 3">Day 3</button>
+                <button class="filter-btn" data-day="Day 4">Day 4</button>
+                <button class="btn btn-primary" id="add-btn">+ Add Event</button>
+            </div>
+
+            <!-- Event list -->
+            <div class="event-list" id="event-list"></div>
+            <div class="empty-state" id="empty-state" style="display:none;">
+                <div class="empty-icon">📅</div>
+                <p>No schedule events yet. Click "+ Add Event" to create one.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="overlay" id="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">Add Schedule Event</h2>
+            <div class="fg">
+                <label>Event Title</label>
+                <input type="text" id="evt-title" placeholder="e.g. Opening Ceremony">
+            </div>
+            <div class="fg-row">
+                <div class="fg">
+                    <label>Day</label>
+                    <select id="evt-day">
+                        <option value="Day 1">Day 1</option>
+                        <option value="Day 2">Day 2</option>
+                        <option value="Day 3">Day 3</option>
+                        <option value="Day 4">Day 4</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Time</label>
+                    <input type="text" id="evt-time" placeholder="e.g. 09:00 - 10:30">
+                </div>
+            </div>
+            <div class="fg-row">
+                <div class="fg">
+                    <label>Venue</label>
+                    <input type="text" id="evt-venue" placeholder="e.g. Marina Bay Sands">
+                </div>
+                <div class="fg">
+                    <label>Category</label>
+                    <select id="evt-category">
+                        <option value="Ceremony">Ceremony</option>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Competition">Competition</option>
+                        <option value="Social">Social</option>
+                        <option value="Meal">Meal</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Free Time">Free Time</option>
+                    </select>
+                </div>
+            </div>
+            <div class="fg">
+                <label>Description (optional)</label>
+                <textarea id="evt-desc" placeholder="Brief description of the event..."></textarea>
+            </div>
+            <div class="fg">
+                <label>Target Audience</label>
+                <select id="evt-audience">
+                    <option value="All">All Participants</option>
+                    <option value="Students">Students Only</option>
+                    <option value="Team Leaders">Team Leaders Only</option>
+                    <option value="Organisers">Organisers Only</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="save-btn">Save Event</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let events = [];
+        let nextId = 1;
+        let activeDay = 'all';
+        let editingId = null;
+
+        // Load from localStorage (persistent across refreshes)
+        const STORAGE_KEY = 'ioai-admin-schedule';
+        function loadEvents() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    events = JSON.parse(stored);
+                    nextId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
+                }
+            } catch(e) {}
+            if (events.length === 0) seedSampleEvents();
+            render();
+        }
+
+        function saveEvents() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+        }
+
+        function seedSampleEvents() {
+            events = [
+                { id: 1, title: 'Opening Ceremony', day: 'Day 1', time: '09:00 - 10:30', venue: 'Marina Bay Sands', category: 'Ceremony', desc: 'Welcome addresses and keynote speech.', audience: 'All' },
+                { id: 2, title: 'AI Fundamentals Workshop', day: 'Day 1', time: '11:00 - 13:00', venue: 'NUS LT27', category: 'Workshop', desc: 'Introduction to machine learning concepts.', audience: 'Students' },
+                { id: 3, title: 'Lunch Break', day: 'Day 1', time: '13:00 - 14:00', venue: 'NUS Canteen', category: 'Meal', desc: '', audience: 'All' },
+                { id: 4, title: 'Team Formation', day: 'Day 1', time: '14:00 - 15:30', venue: 'NUS COM1', category: 'Social', desc: 'Meet your team members and plan your strategy.', audience: 'Students' },
+                { id: 5, title: 'Competition Round 1', day: 'Day 2', time: '09:00 - 12:00', venue: 'SUTD', category: 'Competition', desc: 'Individual AI challenge — 3 hours.', audience: 'Students' },
+                { id: 6, title: 'Lunch & Networking', day: 'Day 2', time: '12:00 - 13:30', venue: 'SUTD Canteen', category: 'Meal', desc: '', audience: 'All' },
+                { id: 7, title: 'Competition Round 2', day: 'Day 2', time: '14:00 - 17:00', venue: 'SUTD', category: 'Competition', desc: 'Team AI challenge — 3 hours.', audience: 'Students' },
+                { id: 8, title: 'Cultural Visit', day: 'Day 3', time: '09:00 - 12:00', venue: 'Gardens by the Bay', category: 'Social', desc: 'Guided tour of Singapore landmarks.', audience: 'All' },
+                { id: 9, title: 'Closing Ceremony & Awards', day: 'Day 4', time: '17:00 - 19:00', venue: 'Sentosa', category: 'Ceremony', desc: 'Results announcement, medals, and farewell.', audience: 'All' },
+            ];
+            nextId = 10;
+            saveEvents();
+        }
+
+        function render() {
+            const filtered = activeDay === 'all' ? events : events.filter(e => e.day === activeDay);
+            const list = document.getElementById('event-list');
+            const empty = document.getElementById('empty-state');
+
+            document.getElementById('stat-total').textContent = events.length;
+            document.getElementById('stat-days').textContent = [...new Set(events.map(e => e.day))].length;
+            document.getElementById('stat-venues').textContent = [...new Set(events.map(e => e.venue))].length;
+
+            if (filtered.length === 0) {
+                list.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            // Sort by day then time
+            const sorted = [...filtered].sort((a, b) => {
+                if (a.day !== b.day) return a.day.localeCompare(b.day);
+                return a.time.localeCompare(b.time);
+            });
+
+            list.innerHTML = sorted.map(e => {
+                const dayClass = 'badge-' + e.day.toLowerCase().replace(' ', '');
+                return `
+                <div class="event-card">
+                    <div class="event-card-header">
+                        <span class="event-card-title">${esc(e.title)}</span>
+                        <div class="event-card-actions">
+                            <button class="btn btn-sm btn-ghost" onclick="editEvent(${e.id})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEvent(${e.id})">Delete</button>
+                        </div>
+                    </div>
+                    <div class="event-card-details">
+                        <span class="event-detail">📅 ${esc(e.day)}</span>
+                        <span class="event-detail">🕐 ${esc(e.time)}</span>
+                        <span class="event-detail">📍 ${esc(e.venue)}</span>
+                        <span class="event-detail">👥 ${esc(e.audience)}</span>
+                    </div>
+                    ${e.desc ? `<div class="event-card-desc">${esc(e.desc)}</div>` : ''}
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <span class="event-badge ${dayClass}">${e.day}</span>
+                        <span class="event-badge badge-category">${e.category}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeDay = btn.dataset.day;
+                render();
+            });
+        });
+
+        // Modal
+        function openModal() {
+            editingId = null;
+            document.getElementById('modal-title').textContent = 'Add Schedule Event';
+            document.getElementById('evt-title').value = '';
+            document.getElementById('evt-day').value = 'Day 1';
+            document.getElementById('evt-time').value = '';
+            document.getElementById('evt-venue').value = '';
+            document.getElementById('evt-category').value = 'Workshop';
+            document.getElementById('evt-desc').value = '';
+            document.getElementById('evt-audience').value = 'All';
+            document.getElementById('modal-overlay').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+            editingId = null;
+        }
+
+        document.getElementById('add-btn').addEventListener('click', openModal);
+
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const title = document.getElementById('evt-title').value.trim();
+            const day = document.getElementById('evt-day').value;
+            const time = document.getElementById('evt-time').value.trim();
+            const venue = document.getElementById('evt-venue').value.trim();
+            const category = document.getElementById('evt-category').value;
+            const desc = document.getElementById('evt-desc').value.trim();
+            const audience = document.getElementById('evt-audience').value;
+
+            if (!title || !time || !venue) {
+                alert('Please fill in Title, Time, and Venue.');
+                return;
+            }
+
+            if (editingId !== null) {
+                const evt = events.find(e => e.id === editingId);
+                if (evt) { Object.assign(evt, { title, day, time, venue, category, desc, audience }); }
+            } else {
+                events.push({ id: nextId++, title, day, time, venue, category, desc, audience });
+            }
+
+            saveEvents();
+            closeModal();
+            render();
+        });
+
+        function editEvent(id) {
+            const evt = events.find(e => e.id === id);
+            if (!evt) return;
+            editingId = id;
+            document.getElementById('modal-title').textContent = 'Edit Schedule Event';
+            document.getElementById('evt-title').value = evt.title;
+            document.getElementById('evt-day').value = evt.day;
+            document.getElementById('evt-time').value = evt.time;
+            document.getElementById('evt-venue').value = evt.venue;
+            document.getElementById('evt-category').value = evt.category;
+            document.getElementById('evt-desc').value = evt.desc || '';
+            document.getElementById('evt-audience').value = evt.audience || 'All';
+            document.getElementById('modal-overlay').classList.add('open');
+        }
+
+        function deleteEvent(id) {
+            if (!confirm('Delete this schedule event?')) return;
+            events = events.filter(e => e.id !== id);
+            saveEvents();
+            render();
+        }
+
+        loadEvents();
+    </script>
+</body>
+</html>

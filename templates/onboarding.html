@@ -311,7 +311,14 @@
             localStorage.setItem('participant_country', country);
             localStorage.setItem('participant_language', language);
 
-            // Register server-side so the participant appears in their delegation
+            // Register server-side so the participant appears in admin panel
+            fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, role, country, language }),
+            }).catch(() => {});
+
+            // Also register with team service for delegation view
             fetch('/api/team/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

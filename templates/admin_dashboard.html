@@ -168,47 +168,40 @@
             </section>
 
             <script>
-                function loadRegisteredParticipants() {
+                async function loadRegisteredParticipants() {
                     const tableBody = document.getElementById('registered-participants-body');
                     if (!tableBody) return;
 
-                    let registry = [];
                     try {
-                        const storedRegistry = localStorage.getItem('ioai_registered_participants');
-                        const parsedRegistry = storedRegistry === null ? [] : JSON.parse(storedRegistry);
-                        registry = Array.isArray(parsedRegistry) ? parsedRegistry : [];
-                    } catch (error) {
-                        registry = [];
+                        const res = await fetch('/api/admin/participants');
+                        const data = await res.json();
+                        const participants = data.participants || [];
+
+                        tableBody.textContent = '';
+                        if (participants.length === 0) {
+                            const row = document.createElement('tr');
+                            const cell = document.createElement('td');
+                            cell.colSpan = 2;
+                            cell.className = 'participants-empty';
+                            cell.textContent = 'No registered participants yet.';
+                            row.appendChild(cell);
+                            tableBody.appendChild(row);
+                            return;
+                        }
+
+                        participants.forEach(participant => {
+                            const row = document.createElement('tr');
+                            const nameCell = document.createElement('td');
+                            const roleCell = document.createElement('td');
+                            nameCell.textContent = participant.name || '';
+                            roleCell.textContent = (participant.role || '') + (participant.country ? ' · ' + participant.country : '');
+                            row.appendChild(nameCell);
+                            row.appendChild(roleCell);
+                            tableBody.appendChild(row);
+                        });
+                    } catch (e) {
+                        tableBody.innerHTML = '<tr><td class="participants-empty" colspan="2">Could not load participants.</td></tr>';
                     }
-
-                    const participants = registry.filter(record =>
-                        record &&
-                        typeof record === 'object' &&
-                        (record.role === 'Student Participant' || record.role === 'Team Leader')
-                    );
-
-                    tableBody.textContent = '';
-                    if (participants.length === 0) {
-                        const row = document.createElement('tr');
-                        const cell = document.createElement('td');
-                        cell.colSpan = 2;
-                        cell.className = 'participants-empty';
-                        cell.textContent = 'No registered participants yet.';
-                        row.appendChild(cell);
-                        tableBody.appendChild(row);
-                        return;
-                    }
-
-                    participants.forEach(participant => {
-                        const row = document.createElement('tr');
-                        const nameCell = document.createElement('td');
-                        const roleCell = document.createElement('td');
-                        nameCell.textContent = String(participant.name ?? '');
-                        roleCell.textContent = participant.role;
-                        row.appendChild(nameCell);
-                        row.appendChild(roleCell);
-                        tableBody.appendChild(row);
-                    });
                 }
 
                 loadRegisteredParticipants();

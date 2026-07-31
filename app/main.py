@@ -129,6 +129,13 @@ async def _init_chat_logger():
     init_chat_log_db()
 
 
+@app.on_event("startup")
+async def _init_participant_registry():
+    """Initialize the participant registry database."""
+    from app.services.participant_registry import init_db as init_participants_db
+    init_participants_db()
+
+
 # ============================================================
 # PAGE ROUTES
 # ============================================================
@@ -405,6 +412,33 @@ async def list_documents():
     """Return all registered uploaded documents."""
     from app.services.document_registry import get_all_documents
     return {"documents": get_all_documents()}
+
+
+@app.post("/api/register")
+async def register_participant(request: Request):
+    """Register a participant (called during onboarding)."""
+    from app.services.participant_registry import register_participant as reg
+    data = await request.json()
+    name = data.get("name", "").strip()
+    role = data.get("role", "").strip()
+    country = data.get("country", "").strip()
+    language = data.get("language", "English").strip()
+
+    if not name or not role:
+        return {"status": "error", "detail": "Name and role are required."}
+
+    pid = reg(name=name, role=role, country=country, language=language)
+    return {"status": "success", "id": pid}
+
+
+@app.get("/api/admin/participants")
+async def get_participants():
+    """Return all registered participants for admin view."""
+    from app.services.participant_registry import get_all_participants, get_stats
+    return {
+        "participants": get_all_participants(),
+        "stats": get_stats(),
+    }
 
 
 @app.get("/api/admin/chat-logs")

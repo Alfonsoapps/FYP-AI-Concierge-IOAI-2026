@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 # TTS Configuration
 # -----------------------------------------------------------------
 DEFAULT_VOICE = "en-SG-LunaNeural"  # Singaporean English for IOAI context
-DEFAULT_RATE = "+0%"
-DEFAULT_PITCH = "+0Hz"
+DEFAULT_RATE = "+5%"
+DEFAULT_PITCH = "+8Hz"
 
 # -----------------------------------------------------------------
 # Singapore Pronunciation Dictionary

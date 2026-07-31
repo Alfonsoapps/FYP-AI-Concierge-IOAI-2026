@@ -803,3 +803,87 @@ body {
 #response-bubble, #chat-history, #history-toggle, #voice-indicator {
     display: none !important;
 }
+
+
+/* ============================================================
+   Example Prompts (Empty Chat State)
+   ============================================================ */
+.example-prompts {
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+}
+.example-prompts-label {
+    width: 100%;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #606080;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+.example-prompt {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: rgba(124, 58, 237, 0.06);
+    color: #a78bfa;
+    font-size: 0.78rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.example-prompt:hover {
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.4);
+    color: #e8e8f0;
+    transform: translateY(-1px);
+}
+
+/* Thinking/typing animation improvement */
+.typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 4px 0;
+}
+.typing-indicator span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #7c3aed;
+    opacity: 0.4;
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Better message spacing and hierarchy */
+.msg { margin-bottom: 4px; }
+.msg-content { line-height: 1.6; }
+.msg-label { font-size: 0.62rem; letter-spacing: 0.06em; margin-bottom: 4px; }
+
+/* Button consistency */
+#send-btn, #mic-btn, #attach-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#send-btn:hover, #mic-btn:hover, #attach-btn:hover {
+    transform: scale(1.08);
+}
+#send-btn:active, #mic-btn:active, #attach-btn:active {
+    transform: scale(0.95);
+}
+
+/* Smooth page transitions */
+#chat-panel, #avatar-area {
+    animation: fadeInUp 0.4s ease-out;
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}

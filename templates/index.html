@@ -81,13 +81,13 @@
         <div id="chat-panel">
             <!-- Welcome Guide Info Card -->
             <div class="guide-info-card">
-                <div class="guide-info-title">Welcome Guide</div>
-                <div class="guide-info-desc">Your AI companion for navigating IOAI 2027. Ask questions about venues, schedules, activities and event information.</div>
+                <div class="guide-info-title">AI Concierge</div>
+                <div class="guide-info-desc">This concierge answers using <strong>official IOAI information</strong> uploaded by organisers. Unlike general AI assistants, responses are grounded in verified event documents.</div>
                 <div class="guide-info-features">
                     <span class="guide-feature">🎤 Voice Support</span>
+                    <span class="guide-feature">📄 RAG-Verified</span>
                     <span class="guide-feature">📍 Event Guidance</span>
-                    <span class="guide-feature">👥 Participant Assistance</span>
-                    <span class="guide-feature">⚡ Quick Answers</span>
+                    <span class="guide-feature">⚡ Real-time Info</span>
                 </div>
             </div>
 
@@ -100,6 +100,15 @@
 
 What would you like to know first?</div>
                     </div>
+                </div>
+                <!-- Example prompts -->
+                <div class="example-prompts" id="example-prompts">
+                    <div class="example-prompts-label">Try asking:</div>
+                    <button class="example-prompt" onclick="sendExample(this)">Where is today's opening ceremony?</button>
+                    <button class="example-prompt" onclick="sendExample(this)">When is my next competition?</button>
+                    <button class="example-prompt" onclick="sendExample(this)">What should I do if I lose my pass?</button>
+                    <button class="example-prompt" onclick="sendExample(this)">Where is the nearest MRT station?</button>
+                    <button class="example-prompt" onclick="sendExample(this)">Translate "thank you" into Malay</button>
                 </div>
             </div>
 
@@ -194,6 +203,18 @@ What would you like to know first?</div>
     <script src="/static/js/voice.js"></script>
 
     <script>
+        // Example prompt handler — sends the prompt text as a chat message
+        function sendExample(btn) {
+            const text = btn.textContent;
+            if (typeof ChatManager !== 'undefined' && ChatManager.elements.input) {
+                ChatManager.elements.input.value = text;
+                ChatManager.sendMessage();
+                // Hide example prompts after first use
+                const prompts = document.getElementById('example-prompts');
+                if (prompts) prompts.style.display = 'none';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('[App] Starting Welcome Guide...');
             ConversationManager.init();

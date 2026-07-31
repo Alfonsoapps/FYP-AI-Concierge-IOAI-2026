@@ -4,13 +4,18 @@ Text-to-Speech Service Module
 Converts text into speech audio using Edge-TTS (Microsoft Edge's TTS engine).
 Edge-TTS is free, requires no API key, and produces natural-sounding speech.
 
+Includes a Singapore pronunciation preprocessing layer that converts local
+place names into phonetic hints for the TTS engine.
+
 Architecture note:
     This module is async (uses edge-tts which is natively async).
     It generates MP3 audio bytes that can be streamed to the frontend.
+    The TTS provider is abstracted so it can be swapped for alternatives.
 """
 
 import logging
 import io
+import re
 import edge_tts
 
 logger = logging.getLogger(__name__)
@@ -18,20 +23,74 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------
 # TTS Configuration
 # -----------------------------------------------------------------
-# Voice options for Edge-TTS (Microsoft Neural voices)
-# Full list: run `edge-tts --list-voices` in terminal
-# Good options for a friendly concierge:
-#   - en-SG-LunaNeural (Singaporean English, female)
-#   - en-US-AriaNeural (US English, female, friendly)
-#   - en-US-GuyNeural (US English, male)
-#   - en-GB-SoniaNeural (British English, female)
 DEFAULT_VOICE = "en-SG-LunaNeural"  # Singaporean English for IOAI context
-
-# Speech rate adjustment (e.g., "+10%" for faster, "-10%" for slower)
 DEFAULT_RATE = "+0%"
-
-# Speech pitch adjustment
 DEFAULT_PITCH = "+0Hz"
+
+# -----------------------------------------------------------------
+# Singapore Pronunciation Dictionary
+# Maps place names to phonetic-friendly spellings that the TTS engine
+# pronounces more naturally for Singapore English speakers.
+# -----------------------------------------------------------------
+PRONUNCIATION_MAP = {
+    "Suntec": "Sun-tek",
+    "SUNTEC": "Sun-tek",
+    "NUS": "N.U.S.",
+    "NTU": "N.T.U.",
+    "SUTD": "S.U.T.D.",
+    "SMU": "S.M.U.",
+    "Changi": "Chahng-ee",
+    "Ang Mo Kio": "Ahng Mo Kee-oh",
+    "Toa Payoh": "Toh-ah Pie-oh",
+    "Bukit": "Boo-kit",
+    "Jurong": "Joo-rong",
+    "Bedok": "Beh-dok",
+    "Tampines": "Tam-pi-neez",
+    "Hougang": "Hoe-gahng",
+    "Yishun": "Yee-shun",
+    "Bishan": "Bee-shan",
+    "Orchard": "Or-chard",
+    "Raffles": "Rah-fuls",
+    "Sentosa": "Sen-toh-sah",
+    "Chinatown": "China-town",
+    "MBS": "Marina Bay Sands",
+    "MRT": "M.R.T.",
+    "EZ-Link": "Easy-Link",
+    "Hawker": "Haw-ker",
+    "Laksa": "Lak-sah",
+    "Char Kway Teow": "Char Kway Tee-ow",
+    "Hainanese": "High-nah-neez",
+    "Kopi": "Ko-pee",
+    "Nasi Lemak": "Nah-see Leh-mak",
+    "Roti Prata": "Roh-tee Prah-tah",
+    "IOAI": "I.O.A.I.",
+    "SGD": "Singapore dollars",
+    "HDB": "H.D.B.",
+    "CBD": "C.B.D.",
+    "Joo Chiat": "Joo Chee-at",
+    "Geylang": "Gay-lahng",
+    "Katong": "Kah-tong",
+    "Clementi": "Cleh-men-tee",
+}
+
+# Compile a regex for efficient replacement (longest match first)
+_PRONUNCIATION_PATTERN = re.compile(
+    "|".join(re.escape(k) for k in sorted(PRONUNCIATION_MAP.keys(), key=len, reverse=True)),
+    re.IGNORECASE,
+)
+
+
+def preprocess_text_for_tts(text: str) -> str:
+    """
+    Apply the Singapore pronunciation dictionary to text before TTS.
+    Replaces known place names with phonetic-friendly alternatives.
+    """
+    def _replace(match):
+        original = match.group(0)
+        # Try exact case match first, then case-insensitive
+        return PRONUNCIATION_MAP.get(original, PRONUNCIATION_MAP.get(original.title(), original))
+
+    return _PRONUNCIATION_PATTERN.sub(_replace, text)
 
 
 async def generate_speech(text: str, voice: str = None) -> bytes:
@@ -51,29 +110,27 @@ async def generate_speech(text: str, voice: str = None) -> bytes:
     if not text or not text.strip():
         raise ValueError("Cannot generate speech from empty text.")
 
+    # Apply pronunciation preprocessing
+    processed_text = preprocess_text_for_tts(text)
     selected_voice = voice or DEFAULT_VOICE
 
     logger.info(
         "Generating TTS: voice=%s, text_length=%d chars",
         selected_voice,
-        len(text),
+        len(processed_text),
     )
 
     try:
-        # Create the Edge-TTS communicator
         communicate = edge_tts.Communicate(
-            text=text,
+            text=processed_text,
             voice=selected_voice,
             rate=DEFAULT_RATE,
             pitch=DEFAULT_PITCH,
         )
 
-        # Collect audio chunks into a buffer
         audio_buffer = io.BytesIO()
 
         async for chunk in communicate.stream():
-            # Edge-TTS streams both audio and metadata chunks
-            # We only want the audio data
             if chunk["type"] == "audio":
                 audio_buffer.write(chunk["data"])
 

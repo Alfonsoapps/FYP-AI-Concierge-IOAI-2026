@@ -148,9 +148,9 @@ async def home_page(request: Request):
 
 
 @app.get("/guide")
-async def guide_page():
+async def guide_page(request: Request):
     """AI Concierge guide page - full avatar experience."""
-    return FileResponse(_tpl("index.html"))
+    return templates.TemplateResponse(request, "index.html", {"request": request, "active_page": "guide"})
 
 
 @app.get("/map")

@@ -107,10 +107,10 @@
 /* Responsive */
 @media (max-width: 500px) {
     .bottom-nav {
-        left: 8px;
-        right: 8px;
-        transform: none;
-        width: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 16px);
+        max-width: 400px;
         padding: 6px 6px;
         gap: 2px;
     }

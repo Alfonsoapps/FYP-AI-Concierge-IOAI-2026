@@ -578,6 +578,19 @@ def publish_announcement(announcement_id: str) -> Dict:
         finally:
             conn.close()
     logger.info("Published announcement %s", announcement_id)
+
+    # Broadcast to Telegram subscribers (best-effort, non-blocking)
+    try:
+        from app.services.telegram_service import broadcast_announcement as tg_broadcast
+        tg_broadcast(
+            title=existing["title"],
+            message=existing["message"],
+            priority=existing["priority"],
+            target_audience=existing["target_audience"],
+        )
+    except Exception as e:
+        logger.warning("Telegram broadcast failed (non-critical): %s", e)
+
     return get_announcement(announcement_id)
 
 

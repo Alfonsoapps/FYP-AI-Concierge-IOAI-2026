@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     app_name: str = "AI Concierge"
     debug: bool = False
 
+    # Telegram Bot (optional — for announcement notifications)
+    telegram_bot_token: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

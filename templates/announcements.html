@@ -98,13 +98,16 @@
         // Reveal the organiser management link for organisers.
         // For non-organisers, change the page title to "My Announcements"
         (function () {
-            const aliases = ['organiser', 'organizer', 'organisers', 'organizers'];
-            if (aliases.includes((role || '').trim().toLowerCase())) {
+            const r = (role || '').trim().toLowerCase();
+            const isOrganiser = r === 'organiser' || r === 'organizer';
+            if (isOrganiser) {
                 document.getElementById('manage-link').hidden = false;
             } else {
                 // Non-organisers see "My Announcements" instead
                 const h1 = document.querySelector('.page-header h1');
                 if (h1) h1.textContent = 'My Announcements';
+                // Ensure the link stays hidden
+                document.getElementById('manage-link').remove();
             }
         })();
 

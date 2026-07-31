@@ -116,6 +116,14 @@ async def _init_explore():
 
 
 @app.on_event("startup")
+async def _init_telegram():
+    """Initialize Telegram bot subscriber DB and poll for new subscribers."""
+    from app.services.telegram_service import init_db as init_tg_db, poll_updates
+    init_tg_db()
+    poll_updates()
+
+
+@app.on_event("startup")
 async def _init_document_registry():
     """Initialize the document registry database."""
     from app.services.document_registry import init_db
@@ -147,9 +155,9 @@ async def home_page(request: Request):
 
 
 @app.get("/guide")
-async def guide_page():
+async def guide_page(request: Request):
     """AI Concierge guide page - full avatar experience."""
-    return FileResponse(_tpl("index.html"))
+    return templates.TemplateResponse(request, "index.html", {"request": request, "active_page": "guide"})
 
 
 @app.get("/map")

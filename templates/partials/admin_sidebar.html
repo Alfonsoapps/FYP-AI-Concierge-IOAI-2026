@@ -1,4 +1,14 @@
 <!-- Admin Sidebar Navigation -->
+<script>
+    // Guard: redirect non-organisers away from admin pages
+    (function() {
+        const role = (localStorage.getItem('participant_role') || '').trim().toLowerCase();
+        const allowed = ['organiser', 'organizer', 'organisers', 'organizers'];
+        if (!allowed.includes(role)) {
+            window.location.href = '/';
+        }
+    })();
+</script>
 <aside class="admin-sidebar" id="admin-sidebar">
     <div class="sidebar-header">
         <div class="sidebar-brand">

@@ -350,6 +350,8 @@
 
     <script>
         const ADMIN_PASSWORD = 'IOAI-ADMIN-2027';
+        const STUDENT_PASSWORD = 'student123';
+        const LEADER_PASSWORD = 'teamleader123';
 
         // Show/hide role-specific password fields based on role selection
         document.getElementById('field-role').addEventListener('change', function() {
@@ -396,6 +398,17 @@
             }
             if ((role === 'Student Participant' || role === 'Team Leader') && !participantPassword) {
                 document.getElementById('group-participant-password').classList.add('has-error');
+                valid = false;
+            }
+            // Validate role-specific passwords
+            if (role === 'Student Participant' && participantPassword !== STUDENT_PASSWORD) {
+                document.getElementById('group-participant-password').classList.add('has-error');
+                document.querySelector('#group-participant-password .error-msg').textContent = 'Incorrect password.';
+                valid = false;
+            }
+            if (role === 'Team Leader' && participantPassword !== LEADER_PASSWORD) {
+                document.getElementById('group-participant-password').classList.add('has-error');
+                document.querySelector('#group-participant-password .error-msg').textContent = 'Incorrect password.';
                 valid = false;
             }
             if (!country) {

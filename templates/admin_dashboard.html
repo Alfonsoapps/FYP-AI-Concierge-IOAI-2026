@@ -157,58 +157,58 @@
                         <thead>
                             <tr>
                                 <th scope="col">Name</th>
-                                <th scope="col">Role</th>
+                                <th scope="col">Country</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody id="registered-participants-body">
-                            <tr><td class="participants-empty" colspan="2">No registered participants yet.</td></tr>
+                            <tr><td class="participants-empty" colspan="3">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
             <script>
-                function loadRegisteredParticipants() {
+                async function loadRegisteredParticipants() {
                     const tableBody = document.getElementById('registered-participants-body');
                     if (!tableBody) return;
 
-                    let registry = [];
                     try {
-                        const storedRegistry = localStorage.getItem('ioai_registered_participants');
-                        const parsedRegistry = storedRegistry === null ? [] : JSON.parse(storedRegistry);
-                        registry = Array.isArray(parsedRegistry) ? parsedRegistry : [];
-                    } catch (error) {
-                        registry = [];
+                        // Fetch all registered members from the server API
+                        const res = await fetch('/api/team/members');
+                        const data = await res.json();
+                        const participants = (data.members || []).filter(m =>
+                            m && m.name
+                        );
+
+                        tableBody.textContent = '';
+                        if (participants.length === 0) {
+                            const row = document.createElement('tr');
+                            const cell = document.createElement('td');
+                            cell.colSpan = 3;
+                            cell.className = 'participants-empty';
+                            cell.textContent = 'No registered participants yet.';
+                            row.appendChild(cell);
+                            tableBody.appendChild(row);
+                            return;
+                        }
+
+                        participants.forEach(participant => {
+                            const row = document.createElement('tr');
+                            const nameCell = document.createElement('td');
+                            const countryCell = document.createElement('td');
+                            const statusCell = document.createElement('td');
+                            nameCell.textContent = participant.name || '';
+                            countryCell.textContent = participant.country || '';
+                            statusCell.textContent = participant.status || '';
+                            row.appendChild(nameCell);
+                            row.appendChild(countryCell);
+                            row.appendChild(statusCell);
+                            tableBody.appendChild(row);
+                        });
+                    } catch (e) {
+                        tableBody.innerHTML = '<tr><td class="participants-empty" colspan="3">Could not load participants.</td></tr>';
                     }
-
-                    const participants = registry.filter(record =>
-                        record &&
-                        typeof record === 'object' &&
-                        (record.role === 'Student Participant' || record.role === 'Team Leader')
-                    );
-
-                    tableBody.textContent = '';
-                    if (participants.length === 0) {
-                        const row = document.createElement('tr');
-                        const cell = document.createElement('td');
-                        cell.colSpan = 2;
-                        cell.className = 'participants-empty';
-                        cell.textContent = 'No registered participants yet.';
-                        row.appendChild(cell);
-                        tableBody.appendChild(row);
-                        return;
-                    }
-
-                    participants.forEach(participant => {
-                        const row = document.createElement('tr');
-                        const nameCell = document.createElement('td');
-                        const roleCell = document.createElement('td');
-                        nameCell.textContent = String(participant.name ?? '');
-                        roleCell.textContent = participant.role;
-                        row.appendChild(nameCell);
-                        row.appendChild(roleCell);
-                        tableBody.appendChild(row);
-                    });
                 }
 
                 loadRegisteredParticipants();
